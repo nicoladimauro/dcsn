@@ -1,7 +1,7 @@
 # dcsn
 dCSN is a package for learning Cutset Networks (CNets), a recently introduced tractable Probabilistic Graphical Model.
 
-# Usage
+## Usage
 
     python dcsn.py nltcs -k 1 -a 0.4
 
