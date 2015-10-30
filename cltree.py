@@ -146,7 +146,6 @@ class Cltree:
 
         if sample_weight is None:
             self.n_samples = X.shape[0]
-            sample_weight = np.ones(self.n_samples, dtype=np.float32)
         else:
             self.n_samples = np.sum(sample_weight)
 
@@ -184,11 +183,17 @@ class Cltree:
         log_c_probs = np.zeros((self.n_features,self.n_features,2,2))
         log_j_probs = np.zeros((self.n_features,self.n_features,2,2))
 
-        weighted_X = np.einsum('ij,i->ij', X, sample_weight)
-
         sparse_cooccurences = sparse.csr_matrix(X)
-        cooccurences = sparse_cooccurences.T.dot(weighted_X)
+        if sample_weight is None:
+            cooccurences_ = sparse_cooccurences.T.dot(sparse_cooccurences)
+            cooccurences = np.array(cooccurences_.todense())
+        else:
+            weighted_X = np.einsum('ij,i->ij', X, sample_weight)
+            cooccurences = sparse_cooccurences.T.dot(weighted_X)
         p = cooccurences.diagonal() 
+
+
+
 
         return log_probs_numba(self.n_features, 
                                self.scope, 
