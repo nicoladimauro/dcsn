@@ -178,6 +178,7 @@ with open(out_log_path, 'w') as out_log:
                              and_leaves = and_leaf,
                              and_inners = and_node)
 
+                    C.fit()
 
                     learn_end_t = perf_counter()
 
@@ -196,19 +197,19 @@ with open(out_log_path, 'w') as out_log:
 
                         out_filename = out_path + '/c' + str(c) +'train.lls'
                         logging.info('Evaluating on training set')
-                        train_avg_ll = C.ll(train, c, out_filename)
+                        train_avg_ll = C.score_samples(train, c, out_filename)
 
                         #
                         # Compute LL on validation set
                         out_filename = out_path + '/c' + str(c) +'valid.lls'
                         logging.info('Evaluating on validation set')
-                        valid_avg_ll = C.ll(valid, c, out_filename)
+                        valid_avg_ll = C.score_samples(valid, c, out_filename)
 
                         #
                         # Compute LL on test set
                         out_filename = out_path + '/c' + str(c) +'test.lls'
                         logging.info('Evaluating on test set')
-                        test_avg_ll = C.ll(test, c, out_filename)
+                        test_avg_ll = C.score_samples(test, c, out_filename)
 
                         #
                         # updating best stats according to valid ll
