@@ -167,10 +167,21 @@ with open(out_log_path, 'w') as out_log:
                     numpy_rand_gen = numpy.random.RandomState(seed)
                     random.seed(seed)
 
+                    ######################################################################
+                    #                    _sample_weight = np.ones(train.shape[0])
+                    #                    mean = 1
+                    #                    variance = 0.1
+                    #                    g_alpha = mean * mean / variance
+                    #                    g_beta = mean / variance
+                    #                    for i in range(train.shape[0]):
+                    #                        _sample_weight[i] = random.gammavariate(g_alpha, 1/g_beta)
+                    ######################################################################
+                    _sample_weight = None
 
                     learn_start_t = perf_counter()
                     C = Csnm(max_components=max_components, 
                              training_data=train, 
+                             sample_weight = _sample_weight,
                              min_instances=min_instances, 
                              min_features=min_features, 
                              alpha=alpha, random_forest=rf,

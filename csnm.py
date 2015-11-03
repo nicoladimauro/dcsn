@@ -31,7 +31,7 @@ def csv_2_numpy(file, path=DATA_PATH, sep=',', type='int'):
 
 class Csnm:
     
-    def __init__(self, training_data, max_components=1,
+    def __init__(self, training_data, sample_weight = None, max_components=1,
                  p=1.0, min_instances=5, min_features=3, alpha=1.0, random_forest=False, beta=1.0,
                  and_leaves=False, and_inners=False):
 
@@ -50,8 +50,12 @@ class Csnm:
 
         self.p = p
         self.random_forest = random_forest
- 
+        
+        self.sample_weight = sample_weight
+
+
         self.bags = [None] * self.max_components
+        self.bags_weight = [None] * self.max_components
         self.csns = [None] * self.max_components
         self.weights = [1/self.max_components] * self.max_components
         self.lls = [0.0] * self.max_components
@@ -73,19 +77,24 @@ class Csnm:
     def create_bags(self):
         if self.max_components == 1:
             self.bags[0] = self.training_data
+            self.bags_weight[0] = self.sample_weight
         else:
             for i in range(self.max_components):
-                self.bags[i] = self._create_bag()
+                self.bags[i], self.bags_weight[i] = self._create_bag()
 
     def _create_bag(self):
         n_instances = int(self.p * self.training_data.shape[0])
         bag = np.zeros((n_instances, self.training_data.shape[1]), dtype='int')
-        weights = np.zeros(n_instances)
+        if self.sample_weight is None:
+            bag_weight = None
+        else:
+            bag_weight = np.zeros(n_instances)
         for i in range(n_instances):
             choice = random.randint(0, self.training_data.shape[0]-1)
             bag[i] = self.training_data[choice]
-            weights = self.training_data_weights[choice]
-        return bag, weights
+            if self.sample_weight is not None:
+                bag_weight[i] = self.sample_weight[choice]
+        return bag, bag_weight
 
     
     def fit(self):
@@ -94,6 +103,7 @@ class Csnm:
             CSN.Csn.init_stats()
 
             self.csns[i] = CSN.Csn(data=self.bags[i],  
+                                   sample_weight = self.bags_weight[i],
                                    n_original_samples = self.bags[i].shape[0],
                                    min_instances=self.min_instances, min_features=self.min_features, alpha=self.alpha, 
                                    random_forest=self.random_forest,

@@ -184,6 +184,7 @@ class Cltree:
         log_j_probs = np.zeros((self.n_features,self.n_features,2,2))
 
         sparse_cooccurences = sparse.csr_matrix(X)
+
         if sample_weight is None:
             cooccurences_ = sparse_cooccurences.T.dot(sparse_cooccurences)
             cooccurences = np.array(cooccurences_.todense())
@@ -212,7 +213,7 @@ class Cltree:
         MI = np.zeros((self.n_features, self.n_features))
         return cMI_numba(self.n_features, log_probs, log_j_probs, MI)
 
-    def score_samples_log_proba(self, X):
+    def score_samples_log_proba(self, X, sample_weight = None):
         """ WRITEME """
         check_is_fitted(self, "tree")
 
@@ -223,7 +224,12 @@ class Cltree:
                 Prob = Prob + self.log_factors[feature, X[:,feature],0]
             else:
                 Prob = Prob + self.log_factors[feature, X[:,feature], X[:,parent]]
-        m = Prob.mean()
+
+        if sample_weight is None:
+            m = Prob.mean()
+        else:
+            Prob = sample_weight * Prob
+            m = np.sum(Prob) / np.sum(sample_weight)
         return m
 
     def score_sample_log_proba(self, x):
@@ -238,7 +244,7 @@ class Cltree:
         return prob
 
 
-    def score_samples_scope_log_proba(self, X, features):
+    def score_samples_scope_log_proba(self, X, features, sample_weight=None):
         """
         In case of a forest, this procedure compute the ll of a single tree of the forest.
         The features parameter is the list of the features of the corresponding tree.
@@ -250,7 +256,13 @@ class Cltree:
                 Prob = Prob + self.log_factors[feature, X[:,feature], 0]
             else:
                 Prob = Prob + self.log_factors[feature, X[:,feature], X[:,parent]]
-        m = Prob.mean()
+
+        if sample_weight is None:
+            m = Prob.mean()
+        else:
+            Prob = sample_weight * Prob
+            m = np.sum(Prob) / np.sum(sample_weight)
+
         return m
 
     def score_sample_scope_log_proba(self, x, features):
