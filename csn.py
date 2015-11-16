@@ -19,8 +19,6 @@ logger = logging.getLogger(__name__)
 
 ###############################################################################
 
-
-
 class Csn:
 
     _id_node_counter = 1
@@ -226,36 +224,6 @@ class Csn:
                 self.mpe_value = rv
                 self.mpe_state = 1
 
-    """            
-    def _score_sample_log_proba(self,x):
-        prob = 0.0
-        if is_tree_node(self.node):
-            prob = prob + self.node.cltree.score_sample_log_proba(x)
-        elif is_and_node(self.node):
-            for i in range(len(self.tree_forest)):
-                if self.node.or_features[i] == None:
-                    prob = prob + self.node.cltree.score_sample_scope_log_proba(x,self.tree_forest[i])
-                else:
-                    x0 = x[self.tree_forest[i]]
-                    x1 = np.concatenate((x0[0:self.node.or_features[i]],x0[self.node.or_features[i]+1:]))
-                    if x0[self.node.or_features[i]] == 0:
-                        prob = prob + logr(self.node.left_weights[i]) + self.node.children_left[i]._score_sample_log_proba(x1)
-                    else:
-                        prob = prob + logr(self.node.right_weights[i]) + self.node.children_right[i]._score_sample_log_proba(x1)
-        elif is_or_node(self.node):
-            x1 = np.concatenate((x[0:self.node.or_feature],x[self.node.or_feature+1:]))
-            if x[self.node.or_feature] == 0:
-                prob = prob + logr(self.node.left_weight) + self.node.left_child._score_sample_log_proba(x1)
-            else:
-                prob = prob + logr(self.node.right_weight) + self.node.right_child._score_sample_log_proba(x1)
-        else:
-            _prob = 0.0
-            for s in range(len(self.node.children)):
-                _prob = _prob + (self.node.weights[s] * np.exp(self.node.children[s]._score_sample_log_proba(x)))
-            prob = logr(_prob)
-
-        return prob
-    """
 
     def score_sample_log_proba(self,x):
         """ WRITEME """
