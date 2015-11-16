@@ -6,14 +6,20 @@ import sys
 import itertools 
 import random
 
-from nodes import Node, OrNode, AndNode, TreeNode, is_or_node, is_and_node, is_tree_node
+import sklearn.mixture
+
+from nodes import Node, OrNode, SumNode, AndNode, TreeNode, is_or_node, is_and_node, is_sum_node, is_tree_node
 from logr import logr
 from cltree import Cltree
+
+from scipy import optimize
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 ###############################################################################
+
+
 
 class Csn:
 
@@ -107,7 +113,7 @@ class Csn:
             self.node.cltree = Cltree()
             self.node.cltree.fit(data, self.m_priors, self.j_priors, alpha=self.alpha, beta=self.beta, 
                                  and_leaves=self.and_leaves, sample_weight=self.sample_weight)
-            self.orig_ll = self.node.cltree.score_samples_log_proba(self.data, self.sample_weight)
+            self.orig_ll = self.node.cltree.score_samples_log_proba(self.data, sample_weight=self.sample_weight)
             self.d = int(math.sqrt(self.data.shape[1]))
             sparsity = 0.0
             sparsity = len(self.data.nonzero()[0])
@@ -152,7 +158,7 @@ class Csn:
     def check_correctness(self,k):
         mean = 0.0
         for world in itertools.product([0,1], repeat=k):
-            prob = np.exp(self.instance_ll(world))
+            prob = np.exp(self._score_sample_log_proba(world))
             mean = mean + prob
         return mean 
 
@@ -219,9 +225,9 @@ class Csn:
             else:
                 self.mpe_value = rv
                 self.mpe_state = 1
-            
+
+    """            
     def _score_sample_log_proba(self,x):
-        """ WRITEME """
         prob = 0.0
         if is_tree_node(self.node):
             prob = prob + self.node.cltree.score_sample_log_proba(x)
@@ -236,21 +242,31 @@ class Csn:
                         prob = prob + logr(self.node.left_weights[i]) + self.node.children_left[i]._score_sample_log_proba(x1)
                     else:
                         prob = prob + logr(self.node.right_weights[i]) + self.node.children_right[i]._score_sample_log_proba(x1)
-        else:
+        elif is_or_node(self.node):
             x1 = np.concatenate((x[0:self.node.or_feature],x[self.node.or_feature+1:]))
             if x[self.node.or_feature] == 0:
                 prob = prob + logr(self.node.left_weight) + self.node.left_child._score_sample_log_proba(x1)
             else:
                 prob = prob + logr(self.node.right_weight) + self.node.right_child._score_sample_log_proba(x1)
-        return prob
+        else:
+            _prob = 0.0
+            for s in range(len(self.node.children)):
+                _prob = _prob + (self.node.weights[s] * np.exp(self.node.children[s]._score_sample_log_proba(x)))
+            prob = logr(_prob)
 
+        return prob
+    """
+
+    def score_sample_log_proba(self,x):
+        """ WRITEME """
+        return self.node.score_sample_log_proba(x)
         
     def score_samples_log_proba(self, X, sample_weight=None):
         """ WRITEME """
 
         Prob = X[:,0]*0.0
         for i in range(X.shape[0]):
-            Prob[i] = self._score_sample_log_proba(X[i])
+            Prob[i] = self.score_sample_log_proba(X[i])
 
         if sample_weight is None:
             m = np.sum(Prob) / X.shape[0]
@@ -258,6 +274,16 @@ class Csn:
             Prob = sample_weight * Prob
             m = np.sum(Prob) / np.sum(sample_weight)
         return m
+
+
+
+    def score_samples_proba(self, X, sample_weight=None):
+        """ WRITEME """
+
+        Prob = X[:,0]*0.0
+        for i in range(X.shape[0]):
+            Prob[i] = np.exp(self._score_sample_log_proba(X[i]))
+        return Prob
         
 
     def and_cut(self):
@@ -304,7 +330,7 @@ class Csn:
 
                     found = False
 
-                    orig_ll = self.node.cltree.score_samples_scope_log_proba(self.data, self.tree_forest[i], self.sample_weight)
+                    orig_ll = self.node.cltree.score_samples_scope_log_proba(self.data, self.tree_forest[i])
 
                     bestlik = orig_ll
                     best_clt_l = None
@@ -360,8 +386,8 @@ class Csn:
                             CL_r.fit(right_data,self.m_priors,self.j_priors,scope=right_scope,alpha=self.alpha*right_weight, beta=self.beta,
                                           and_leaves=self.and_leaves, sample_weight = right_sample_weight)
 
-                            l_ll = CL_l.score_samples_log_proba(left_data, left_sample_weight)
-                            r_ll = CL_r.score_samples_log_proba(right_data, right_sample_weight)
+                            l_ll = CL_l.score_samples_log_proba(left_data)
+                            r_ll = CL_r.score_samples_log_proba(right_data)
 
                             ll = ((l_ll+logr(left_weight))*left_data.shape[0] + (r_ll+logr(right_weight))*right_data.shape[0])/self.data.shape[0]
                         else:
@@ -470,6 +496,74 @@ class Csn:
         best_right_sample_weight = None
                             
 
+        # check for clustering
+        n_clusters = 2
+        cov_type = 'tied'
+        rand_gen = None
+        n_iters = 1000
+        n_restarts=1
+        gmm_c = sklearn.mixture.GMM(n_components=n_clusters, covariance_type=cov_type,
+                                    random_state=rand_gen, n_iter=n_iters, n_init=n_restarts)
+        
+        gmm_c.fit(self.data)
+        
+        clustering = gmm_c.predict(self.data)
+
+        # preventing to have a cluster with a number of instances lesser than self.min_instances
+        cardinality = np.sum(clustering)
+        if cardinality > self.min_instances and (self.data.shape[0] - cardinality) > self.min_instances:
+
+            condition_c = (clustering == 0)
+
+            DL = self.data[condition_c]
+            DR = self.data[~condition_c]
+
+            CL_l_c = Cltree()
+            CL_r_c = Cltree()
+
+            left_weight_c = DL.shape[0] / self.data.shape[0]
+            right_weight_c = DR.shape[0] / self.data.shape[0]
+
+            print(left_weight_c,right_weight_c)
+
+            CL_l_c.fit(DL,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*left_weight_c, beta=self.beta,
+                       and_leaves=self.and_leaves, sample_weight = None)
+            CL_r_c.fit(DR,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*right_weight_c, beta=self.beta,
+                       and_leaves=self.and_leaves, sample_weight = None)
+
+
+            # log sum exp
+            l = 0.0
+            for d in self.data:
+                l = l + logr( left_weight_c * np.exp(CL_l_c.score_sample_log_proba(d)) + right_weight_c * np.exp(CL_r_c.score_sample_log_proba(d)))
+            l = l / self.data.shape[0]
+
+            print("ll:", l)
+
+            l_ll_c = CL_l_c.score_samples_log_proba(self.data, sample_weight = None)
+            r_ll_c = CL_r_c.score_samples_log_proba(self.data, sample_weight = None)
+
+            ll_c = l
+    #        ll_c = ((l_ll_c+logr(left_weight_c))*self.data.shape[0] + (r_ll_c+logr(right_weight_c))*self.data.shape[0])/self.data.shape[0]
+
+
+
+            print(CL_l_c.score_samples_log_proba(DL, sample_weight = None), 
+                  CL_r_c.score_samples_log_proba(DR, sample_weight = None))
+            print(CL_l_c.score_samples_log_proba(DR, sample_weight = None), 
+                  CL_r_c.score_samples_log_proba(DL, sample_weight = None))
+
+            print (l_ll_c, r_ll_c, ll_c)
+
+            if  (ll_c - self.orig_ll)<0:
+                print (" ##########################", ll_c - self.orig_ll)
+
+
+        else:
+            ll_c = -np.inf
+        print ("Clustering done")
+
+
         if self.random_forest:
             if self.d > self.node.cltree.n_features:
                 selected = range(self.node.cltree.n_features)
@@ -486,16 +580,19 @@ class Csn:
             new_features[feature] = False
             left_data = self.data[condition,:][:, new_features]
             right_data = self.data[~condition,:][:, new_features]
-            left_weight = (left_data.shape[0] ) / (self.data.shape[0] )
-            right_weight = (right_data.shape[0] ) / (self.data.shape[0] )        
 
             if self.sample_weight is not None:
                 left_sample_weight = self.sample_weight[condition]
                 right_sample_weight = self.sample_weight[~condition]
+                left_weight = np.sum(left_sample_weight ) / np.sum(self.sample_weight )
+                right_weight = np.sum(right_sample_weight ) / np.sum(self.sample_weight )        
             else:
                 left_sample_weight = None
                 right_sample_weight = None
-           
+                left_weight = (left_data.shape[0] ) / (self.data.shape[0] )
+                right_weight = (right_data.shape[0] ) / (self.data.shape[0] )        
+
+          
             if left_data.shape[0] > self.min_instances and right_data.shape[0] > self.min_instances:
                 left_scope = np.concatenate((self.node.cltree.scope[0:feature],self.node.cltree.scope[feature+1:]))
                 right_scope = np.concatenate((self.node.cltree.scope[0:feature],self.node.cltree.scope[feature+1:]))
@@ -507,11 +604,14 @@ class Csn:
                 CL_r.fit(right_data,self.m_priors,self.j_priors,scope=right_scope,alpha=self.alpha*right_weight, beta=self.beta,
                               and_leaves=self.and_leaves, sample_weight = right_sample_weight)
 
-                l_ll = CL_l.score_samples_log_proba(left_data, left_sample_weight)
-                r_ll = CL_r.score_samples_log_proba(right_data, right_sample_weight)
+                l_ll = CL_l.score_samples_log_proba(left_data, sample_weight = left_sample_weight)
+                r_ll = CL_r.score_samples_log_proba(right_data, sample_weight = right_sample_weight)
 
 
-                ll = ((l_ll+logr(left_weight))*left_data.shape[0] + (r_ll+logr(right_weight))*right_data.shape[0])/self.data.shape[0]
+                if self.sample_weight is not None:
+                    ll = ((l_ll+logr(left_weight))*np.sum(left_sample_weight) + (r_ll+logr(right_weight))*np.sum(right_sample_weight))/np.sum(self.sample_weight)
+                else:
+                    ll = ((l_ll+logr(left_weight))*left_data.shape[0] + (r_ll+logr(right_weight))*right_data.shape[0])/self.data.shape[0]
             else:
                 ll = -np.inf
 
@@ -535,44 +635,84 @@ class Csn:
 
         gain = (bestlik - self.orig_ll)
         print (" gain:", gain, end = "")
+
+        gain_c = (ll_c - self.orig_ll)
+        print (" gain clustering:", gain_c, end = "")
+
+        if (found==True and gain > self.min_gain) or (gain_c > gain and gain_c > self.min_gain):
+
+            if (gain > gain_c):
             
-        if found==True and gain > self.min_gain:
+                self.node = OrNode()
+                Csn._or_nodes = Csn._or_nodes + 1
+                Csn._or_edges = Csn._or_edges + 2
 
-            self.node = OrNode()
-            Csn._or_nodes = Csn._or_nodes + 1
-            Csn._or_edges = Csn._or_edges + 2
-         
-            self.node.or_feature = best_feature_cut
-            print(" cutting on feature ", self.node.or_feature)
+                self.node.or_feature = best_feature_cut
+                print(" cutting on feature ", self.node.or_feature)
 
-            instances = self.data.shape[0]
-            
-            self.node.left_weight = best_left_weight
-            self.node.right_weight = best_right_weight
+                instances = self.data.shape[0]
 
-            # free memory before to recurse
-            self.free_memory()
+                self.node.left_weight = best_left_weight
+                self.node.right_weight = best_right_weight
 
-            self.node.left_child = Csn(data=best_left_data, 
-                                       clt=best_clt_l, ll=best_l_ll, 
-                                       min_instances=self.min_instances, 
-                                       min_features=self.min_features, alpha=self.alpha*best_left_weight, 
-                                       d=self.d, random_forest=self.random_forest,
-                                       m_priors = self.m_priors, j_priors = self.j_priors,
-                                       n_original_samples = self.n_original_samples,
-                                       and_leaves=self.and_leaves, and_inners=self.and_inners,
-                                       min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
-                                       sample_weight = best_left_sample_weight)
-            self.node.right_child = Csn(data=best_right_data, 
-                                        clt=best_clt_r, ll=best_r_ll, 
-                                        min_instances=self.min_instances, 
-                                        min_features=self.min_features, alpha=self.alpha*best_right_weight, d=self.d, 
-                                        random_forest=self.random_forest,
-                                        m_priors = self.m_priors, j_priors = self.j_priors,
-                                        n_original_samples = self.n_original_samples,
-                                        and_leaves=self.and_leaves, and_inners=self.and_inners,
-                                        min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
-                                        sample_weight = best_right_sample_weight)
+                # free memory before to recurse
+                self.free_memory()
+
+                self.node.left_child = Csn(data=best_left_data, 
+                                           clt=best_clt_l, ll=best_l_ll, 
+                                           min_instances=self.min_instances, 
+                                           min_features=self.min_features, alpha=self.alpha*best_left_weight, 
+                                           d=self.d, random_forest=self.random_forest,
+                                           m_priors = self.m_priors, j_priors = self.j_priors,
+                                           n_original_samples = self.n_original_samples,
+                                           and_leaves=self.and_leaves, and_inners=self.and_inners,
+                                           min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
+                                           sample_weight = best_left_sample_weight)
+                self.node.right_child = Csn(data=best_right_data, 
+                                            clt=best_clt_r, ll=best_r_ll, 
+                                            min_instances=self.min_instances, 
+                                            min_features=self.min_features, alpha=self.alpha*best_right_weight, d=self.d, 
+                                            random_forest=self.random_forest,
+                                            m_priors = self.m_priors, j_priors = self.j_priors,
+                                            n_original_samples = self.n_original_samples,
+                                            and_leaves=self.and_leaves, and_inners=self.and_inners,
+                                            min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
+                                            sample_weight = best_right_sample_weight)
+
+            else:
+                self.node = SumNode()
+                print("Adding a sum node")
+
+                instances = self.data.shape[0]
+
+                self.node.weights.append(left_weight_c)
+                self.node.weights.append(right_weight_c)
+
+                # free memory before to recurse
+                self.free_memory()
+
+                self.node.children.append(Csn(data=DL, 
+                                              clt=CL_l_c, ll=l_ll_c, 
+                                              min_instances=self.min_instances, 
+                                              min_features=self.min_features, alpha=self.alpha*left_weight_c, 
+                                              d=self.d, random_forest=self.random_forest,
+                                              m_priors = self.m_priors, j_priors = self.j_priors,
+                                              n_original_samples = self.n_original_samples,
+                                              and_leaves=self.and_leaves, and_inners=self.and_inners,
+                                              min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
+                                              sample_weight = None))
+                self.node.children.append(Csn(data=DR, 
+                                              clt=CL_r_c, ll=r_ll_c, 
+                                              min_instances=self.min_instances, 
+                                              min_features=self.min_features, alpha=self.alpha*right_weight_c, d=self.d, 
+                                              random_forest=self.random_forest,
+                                              m_priors = self.m_priors, j_priors = self.j_priors,
+                                              n_original_samples = self.n_original_samples,
+                                              and_leaves=self.and_leaves, and_inners=self.and_inners,
+                                              min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
+                                              sample_weight = None))
+
+
         else:
             print(" no cutting")
             if self.node.cltree.is_forest():

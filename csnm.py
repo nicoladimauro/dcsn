@@ -1,11 +1,9 @@
 import numpy as np
 import random
-import csv
-import getopt
 import time
 import logging
 import scipy
-import itertools 
+import csv
 
 from logr import logr
 import csn as CSN
@@ -13,9 +11,8 @@ import csn as CSN
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DATA_PATH = "data/"
-
 ###############################################################################
+DATA_PATH = 'data/'
 
 def csv_2_numpy(file, path=DATA_PATH, sep=',', type='int'):
     """
@@ -26,7 +23,6 @@ def csv_2_numpy(file, path=DATA_PATH, sep=',', type='int'):
     x = list(reader)
     dataset = np.array(x).astype(type)
     return dataset
-
 
 
 class Csnm:
@@ -111,7 +107,7 @@ class Csnm:
                                    beta=self.beta,
                                    depth = 1)
 
-            self.csns[i].show()
+#            self.csns[i].show()
             self.lls[i] = self.csns[i].score_samples_log_proba(self.training_data)
             self.or_nodes[i] = CSN.Csn._or_nodes 
             self.leaf_nodes[i] = CSN.Csn._leaf_nodes
@@ -122,6 +118,8 @@ class Csnm:
             self.clforests[i] = CSN.Csn._clforests
             self.depth[i] = CSN.Csn._depth
             self.mdepth[i] = CSN.Csn._mean_depth / CSN.Csn._leaf_nodes
+
+#            print("Correct:", self.csns[i].check_correctness(self.bags[i].shape[1]))
 
         
     def compute_weights(self, n_c):
@@ -138,7 +136,7 @@ class Csnm:
             for x in data:
                 prob = 0.0
                 for k in range(n_c):
-                    prob = prob + np.exp(self.csns[k]._score_sample_log_proba(x))*self.weights[k]
+                    prob = prob + np.exp(self.csns[k].score_sample_log_proba(x))*self.weights[k]
                 mean = mean + logr(prob)
                 out_log.write('%.10f\n'%logr(prob))
         out_log.close()
