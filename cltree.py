@@ -149,7 +149,9 @@ class Cltree:
         else:
             self.n_samples = np.sum(sample_weight)
 
+
         (log_probs, log_j_probs, log_c_probs) = self.compute_log_probs(X, sample_weight, m_priors, j_priors)
+
 
         MI = self.cMI(log_probs, log_j_probs)
         " the tree is represented as a sequence of parents"
@@ -172,6 +174,15 @@ class Cltree:
             if self.num_trees > 1:
                 self._forest = True
 
+        """
+        selected_MI = []
+        for p in range(1,self.n_features):
+            selected_MI.append((p,MI[self.tree[p],p]))
+        selected_MI.sort(key=lambda mi: mi[1], reverse=True)
+        for p in range(10,self.n_features-1):
+            self.tree[selected_MI[p][0]]=-1
+        """
+
         self.num_edges = self.n_features - self.num_trees
         # computing the factored represetation
         self.log_factors = np.zeros((self.n_features, 2, 2))
@@ -192,9 +203,6 @@ class Cltree:
             weighted_X = np.einsum('ij,i->ij', X, sample_weight)
             cooccurences = sparse_cooccurences.T.dot(weighted_X)
         p = cooccurences.diagonal() 
-
-
-
 
         return log_probs_numba(self.n_features, 
                                self.scope, 
