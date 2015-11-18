@@ -105,7 +105,7 @@ class Csnm:
                                    and_leaves=self.and_leaves, and_inners=self.and_inners,
                                    depth = 1)
 
-#            self.csns[i].show()
+            self.csns[i].show()
             self.lls[i] = self.csns[i].score_samples_log_proba(self.training_data)
             self.or_nodes[i] = CSN.Csn._or_nodes 
             self.leaf_nodes[i] = CSN.Csn._leaf_nodes

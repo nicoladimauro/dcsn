@@ -194,6 +194,10 @@ class Csn:
                 if self.node.or_features[i] is not None:
                     self.node.children_left[i]._showl(level+1)
                     self.node.children_right[i]._showl(level+1)
+        elif is_sum_node(self.node):
+            print(self.id,"SUM", self.node.weights)
+            for c in self.node.children:
+                c._showl(level+1)
         else:
             print(self.id, "LEAF", end=" ")
             if self.node.cltree.is_forest():
