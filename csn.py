@@ -23,6 +23,7 @@ class Csn:
 
     _id_node_counter = 1
     _or_nodes = 0
+    _sum_nodes = 0
     _leaf_nodes = 0
     _or_edges = 0
     _clt_edges = 0
@@ -36,6 +37,7 @@ class Csn:
     def init_stats(cls):
         Csn._id_node_counter = 1
         Csn._or_nodes = 0
+        Csn._sum_nodes = 0
         Csn._leaf_nodes = 0
         Csn._or_edges = 0
         Csn._clt_edges = 0
@@ -165,6 +167,7 @@ class Csn:
         print ("Learned Cut Set Network")
         self._showl(0)
         print("OR nodes:", Csn._or_nodes)
+        print("SUM nodes:", Csn._sum_nodes)
         print("And nodes:", Csn._and_nodes)
         print("Leaves:", Csn._leaf_nodes)
         print("Cltrees:", Csn._cltrees)
@@ -635,6 +638,8 @@ class Csn:
             else:
                 self.node = SumNode()
                 print("   - Adding a sum node")
+
+                Csn._sum_nodes = Csn._sum_nodes + 1
 
                 instances = self.data.shape[0]
 

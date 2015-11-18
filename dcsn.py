@@ -138,7 +138,7 @@ if not os.path.exists(os.path.dirname(out_log_path)):
 best_valid_avg_ll = -np.inf
 best_state = {}
 
-preamble = ("""components,alpha,minst,mfeat,or_nodes,and_nodes,leaf_nodes,or_edges,clt_edges,cltrees,clforests,depth,mdepth,time,""" +
+preamble = ("""components,alpha,minst,mfeat,or_nodes,sum_nodes,and_nodes,leaf_nodes,or_edges,clt_edges,cltrees,clforests,depth,mdepth,time,""" +
             """train_ll,valid_ll,test_ll\n""")
 
 max_components = max(n_components)
@@ -234,6 +234,7 @@ with open(out_log_path, 'w') as out_log:
                     os.remove(out_path + '/c' + str(c) +'valid.lls')
 
                     or_nodes = sum(C.or_nodes[:c])/c
+                    sum_nodes = sum(C.sum_nodes[:c])/c
                     and_nodes = sum(C.and_nodes[:c])/c
                     leaf_nodes = sum(C.leaf_nodes[:c])/c
                     or_edges = sum(C.or_edges[:c])/c
@@ -252,6 +253,7 @@ with open(out_log_path, 'w') as out_log:
                                           min_instances,
                                           min_features,
                                           or_nodes,
+                                          sum_nodes,
                                           and_nodes,
                                           leaf_nodes,
                                           or_edges,

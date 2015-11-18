@@ -57,6 +57,7 @@ class Csnm:
 
 
         self.or_nodes = [0.0] * self.max_components
+        self.sum_nodes = [0.0] * self.max_components
         self.leaf_nodes = [0.0] * self.max_components
         self.or_edges = [0.0] * self.max_components
         self.clt_edges = [0.0] * self.max_components
@@ -108,6 +109,7 @@ class Csnm:
             self.csns[i].show()
             self.lls[i] = self.csns[i].score_samples_log_proba(self.training_data)
             self.or_nodes[i] = CSN.Csn._or_nodes 
+            self.sum_nodes[i] = CSN.Csn._sum_nodes 
             self.leaf_nodes[i] = CSN.Csn._leaf_nodes
             self.or_edges[i] = CSN.Csn._or_edges
             self.clt_edges[i] = CSN.Csn._clt_edges
