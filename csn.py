@@ -126,7 +126,7 @@ class Csn:
 
         self.id = Csn._id_node_counter
         Csn._id_node_counter = Csn._id_node_counter + 1
-        print("Block", self.id, "on", len(self.node.cltree.scope), "features",  "local ll:", self.orig_ll)
+        print("Block", self.id, "on", len(self.scope), "features and", self.data.shape[0], "instances, local ll:", self.orig_ll)
 
         if self.data.shape[0] > self.min_instances:
             if self.data.shape[1] >= self.min_features:
@@ -445,7 +445,7 @@ class Csn:
 
     def or_cut(self):
         """ WRITEME """
-        print(" > trying to cut ... ", end = "")
+        print(" > trying to cut ... ")
         sys.stdout.flush()
 
         found = False
@@ -477,59 +477,40 @@ class Csn:
         
         clustering = gmm_c.predict(self.data)
 
-        # preventing to have a cluster with a number of instances lesser than self.min_instances
+        # preventing to have a cluster with zero instances
         cardinality = np.sum(clustering)
-        if cardinality > self.min_instances and (self.data.shape[0] - cardinality) > self.min_instances:
+        print("   - Clustering instances:",self.data.shape[0], "-", cardinality,self.data.shape[0] - cardinality, end=" ")
+        if cardinality > 0 and (self.data.shape[0] - cardinality) > 0:
 
-            condition_c = (clustering == 0)
+            cluster_0 = (clustering == 0)
 
-            DL = self.data[condition_c]
-            DR = self.data[~condition_c]
+            cluster_0_data = self.data[cluster_0]
+            cluster_1_data = self.data[~cluster_0]
 
-            CL_l_c = Cltree()
-            CL_r_c = Cltree()
+            cluster_0_tree = Cltree()
+            cluster_1_tree = Cltree()
 
-            left_weight_c = DL.shape[0] / self.data.shape[0]
-            right_weight_c = DR.shape[0] / self.data.shape[0]
+            cluster_0_weight = cluster_0_data.shape[0] / self.data.shape[0]
+            cluster_1_weight = cluster_1_data.shape[0] / self.data.shape[0]
 
-            print(left_weight_c,right_weight_c)
-
-            CL_l_c.fit(DL,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*left_weight_c, beta=self.beta,
+            cluster_0_tree.fit(cluster_0_data,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*cluster_0_weight, beta=self.beta,
                        and_leaves=self.and_leaves, sample_weight = None)
-            CL_r_c.fit(DR,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*right_weight_c, beta=self.beta,
+            cluster_1_tree.fit(cluster_1_data,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*cluster_1_weight, beta=self.beta,
                        and_leaves=self.and_leaves, sample_weight = None)
 
+            cluster_0_ll = cluster_0_tree.score_samples_log_proba(cluster_0_data, sample_weight = None)
+            cluster_1_ll = cluster_1_tree.score_samples_log_proba(cluster_1_data, sample_weight = None)
 
             # log sum exp
-            l = 0.0
+            clustering_ll = 0.0
             for d in self.data:
-                l = l + logr( left_weight_c * np.exp(CL_l_c.score_sample_log_proba(d)) + right_weight_c * np.exp(CL_r_c.score_sample_log_proba(d)))
-            l = l / self.data.shape[0]
+                clustering_ll = clustering_ll + logr( cluster_0_weight * np.exp(cluster_0_tree.score_sample_log_proba(d)) + cluster_1_weight * np.exp(cluster_1_tree.score_sample_log_proba(d)))
+            clustering_ll = clustering_ll / self.data.shape[0]
 
-            print("ll:", l)
-
-            l_ll_c = CL_l_c.score_samples_log_proba(self.data, sample_weight = None)
-            r_ll_c = CL_r_c.score_samples_log_proba(self.data, sample_weight = None)
-
-            ll_c = l
-    #        ll_c = ((l_ll_c+logr(left_weight_c))*self.data.shape[0] + (r_ll_c+logr(right_weight_c))*self.data.shape[0])/self.data.shape[0]
-
-
-
-            print(CL_l_c.score_samples_log_proba(DL, sample_weight = None), 
-                  CL_r_c.score_samples_log_proba(DR, sample_weight = None))
-            print(CL_l_c.score_samples_log_proba(DR, sample_weight = None), 
-                  CL_r_c.score_samples_log_proba(DL, sample_weight = None))
-
-            print (l_ll_c, r_ll_c, ll_c)
-
-            if  (ll_c - self.orig_ll)<0:
-                print (" ##########################", ll_c - self.orig_ll)
-
+            print("ll:", clustering_ll)
 
         else:
-            ll_c = -np.inf
-        print ("Clustering done")
+            clustering_ll = -np.inf
 
 
         if self.random_forest:
@@ -560,8 +541,9 @@ class Csn:
                 left_weight = (left_data.shape[0] ) / (self.data.shape[0] )
                 right_weight = (right_data.shape[0] ) / (self.data.shape[0] )        
 
-          
-            if left_data.shape[0] > self.min_instances and right_data.shape[0] > self.min_instances:
+            if left_data.shape[0] > 0 and right_data.shape[0] > 0:          
+#            if left_data.shape[0] > self.min_instances and right_data.shape[0] > self.min_instances:
+
                 left_scope = np.concatenate((self.node.cltree.scope[0:feature],self.node.cltree.scope[feature+1:]))
                 right_scope = np.concatenate((self.node.cltree.scope[0:feature],self.node.cltree.scope[feature+1:]))
                 CL_l = Cltree()
@@ -602,10 +584,10 @@ class Csn:
                 found = True
 
         gain = (bestlik - self.orig_ll)
-        print (" gain:", gain, end = "")
+        print ("   - gain cut:", gain, end = "")
 
-        gain_c = (ll_c - self.orig_ll)
-        print (" gain clustering:", gain_c, end = "")
+        gain_c = (clustering_ll - self.orig_ll)
+        print (" gain clustering:", gain_c)
 
         if (found==True and gain > self.min_gain) or (gain_c > gain and gain_c > self.min_gain):
 
@@ -616,7 +598,7 @@ class Csn:
                 Csn._or_edges = Csn._or_edges + 2
 
                 self.node.or_feature = best_feature_cut
-                print(" cutting on feature ", self.node.or_feature)
+                print("   - cutting on feature ", self.node.or_feature, "[#l:",best_left_data.shape[0],", #r:",best_right_data.shape[0],"], gain:", bestlik - self.orig_ll)
 
                 instances = self.data.shape[0]
 
@@ -649,37 +631,36 @@ class Csn:
 
             else:
                 self.node = SumNode()
-                print("Adding a sum node")
+                print("   - Adding a sum node")
 
                 instances = self.data.shape[0]
 
-                self.node.weights.append(left_weight_c)
-                self.node.weights.append(right_weight_c)
+                self.node.weights.append(cluster_0_weight)
+                self.node.weights.append(cluster_1_weight)
 
                 # free memory before to recurse
                 self.free_memory()
 
-                self.node.children.append(Csn(data=DL, 
-                                              clt=CL_l_c, ll=l_ll_c, 
+                self.node.children.append(Csn(data=cluster_0_data, 
+                                              clt=cluster_0_tree, ll=cluster_0_ll, 
                                               min_instances=self.min_instances, 
-                                              min_features=self.min_features, alpha=self.alpha*left_weight_c, 
+                                              min_features=self.min_features, alpha=self.alpha*cluster_0_weight, 
                                               d=self.d, random_forest=self.random_forest,
                                               m_priors = self.m_priors, j_priors = self.j_priors,
                                               n_original_samples = self.n_original_samples,
                                               and_leaves=self.and_leaves, and_inners=self.and_inners,
                                               min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
                                               sample_weight = None))
-                self.node.children.append(Csn(data=DR, 
-                                              clt=CL_r_c, ll=r_ll_c, 
+                self.node.children.append(Csn(data=cluster_1_data, 
+                                              clt=cluster_1_tree, ll=cluster_1_ll, 
                                               min_instances=self.min_instances, 
-                                              min_features=self.min_features, alpha=self.alpha*right_weight_c, d=self.d, 
+                                              min_features=self.min_features, alpha=self.alpha*cluster_1_weight, d=self.d, 
                                               random_forest=self.random_forest,
                                               m_priors = self.m_priors, j_priors = self.j_priors,
                                               n_original_samples = self.n_original_samples,
                                               and_leaves=self.and_leaves, and_inners=self.and_inners,
                                               min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
                                               sample_weight = None))
-
 
         else:
             print(" no cutting")
