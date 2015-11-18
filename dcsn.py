@@ -77,10 +77,6 @@ parser.add_argument('-a', '--alpha', type=float, nargs='+',
                     default=[1.0],
                     help='Smoothing factor for leaf probability estimation')
 
-parser.add_argument('-b', '--beta', type=float, nargs='+',
-                    default=[1.0],
-                    help='beta parameter for and nodes')
-
 parser.add_argument('--al', action='store_true', default=False,
                     help='Use and nodes as leaves (i.e., CL forests).')
 
@@ -109,7 +105,6 @@ logging.info("Starting with arguments:\n%s", args)
 #
 # gathering parameters
 alphas = args.alpha
-betas = args.beta
 n_components = args.k
 rf = args.random
 m_instances = args.d
@@ -143,7 +138,7 @@ if not os.path.exists(os.path.dirname(out_log_path)):
 best_valid_avg_ll = -np.inf
 best_state = {}
 
-preamble = ("""components,alpha,beta,minst,mfeat,or_nodes,and_nodes,leaf_nodes,or_edges,clt_edges,cltrees,clforests,depth,mdepth,time,""" +
+preamble = ("""components,alpha,minst,mfeat,or_nodes,and_nodes,leaf_nodes,or_edges,clt_edges,cltrees,clforests,depth,mdepth,time,""" +
             """train_ll,valid_ll,test_ll\n""")
 
 max_components = max(n_components)
@@ -156,127 +151,123 @@ with open(out_log_path, 'w') as out_log:
     #
     # looping over all parameters combinations
     for alpha in alphas:
-        for beta in betas:
-            for min_instances in m_instances:
-                for min_features in m_features:
+        for min_instances in m_instances:
+            for min_features in m_features:
 
-                    C = None
+                C = None
 
-                    # initing the random generators
-                    seed = args.seed
-                    numpy_rand_gen = numpy.random.RandomState(seed)
-                    random.seed(seed)
+                # initing the random generators
+                seed = args.seed
+                numpy_rand_gen = numpy.random.RandomState(seed)
+                random.seed(seed)
 
-                    ######################################################################
-                    #                    _sample_weight = np.ones(train.shape[0])
-                    #                    mean = 1
-                    #                    variance = 0.1
-                    #                    g_alpha = mean * mean / variance
-                    #                    g_beta = mean / variance
-                    #                    for i in range(train.shape[0]):
-                    #                        _sample_weight[i] = random.gammavariate(g_alpha, 1/g_beta)
-                    ######################################################################
-                    _sample_weight = None
+                ######################################################################
+                #                    _sample_weight = np.ones(train.shape[0])
+                #                    mean = 1
+                #                    variance = 0.1
+                #                    g_alpha = mean * mean / variance
+                #                    g_beta = mean / variance
+                #                    for i in range(train.shape[0]):
+                #                        _sample_weight[i] = random.gammavariate(g_alpha, 1/g_beta)
+                ######################################################################
+                _sample_weight = None
 
-                    learn_start_t = perf_counter()
-                    C = Csnm(max_components=max_components, 
-                             training_data=train, 
-                             sample_weight = _sample_weight,
-                             min_instances=min_instances, 
-                             min_features=min_features, 
-                             alpha=alpha, random_forest=rf,
-                             beta = beta,
-                             and_leaves = and_leaf,
-                             and_inners = and_node)
+                learn_start_t = perf_counter()
+                C = Csnm(max_components=max_components, 
+                         training_data=train, 
+                         sample_weight = _sample_weight,
+                         min_instances=min_instances, 
+                         min_features=min_features, 
+                         alpha=alpha, random_forest=rf,
+                         and_leaves = and_leaf,
+                         and_inners = and_node)
 
-                    C.fit()
+                C.fit()
 
-                    learn_end_t = perf_counter()
+                learn_end_t = perf_counter()
 
-                    learning_time = (learn_end_t - learn_start_t)
+                learning_time = (learn_end_t - learn_start_t)
+
+
+                #
+                # gathering statistics
+    #            n_nodes = csn.n_nodes()
+    #            n_levels = csn.n_levels()
+    #            n_leaves = csn.n_leaves()
+
+                for c in n_components:
+                    #
+                    # Compute LL on training set
+
+                    out_filename = out_path + '/c' + str(c) +'train.lls'
+                    logging.info('Evaluating on training set')
+                    train_avg_ll = C.score_samples(train, c, out_filename)
+
+                    #
+                    # Compute LL on validation set
+                    out_filename = out_path + '/c' + str(c) +'valid.lls'
+                    logging.info('Evaluating on validation set')
+                    valid_avg_ll = C.score_samples(valid, c, out_filename)
+
+                    #
+                    # Compute LL on test set
+                    out_filename = out_path + '/c' + str(c) +'test.lls'
+                    logging.info('Evaluating on test set')
+                    test_avg_ll = C.score_samples(test, c, out_filename)
+
+                    #
+                    # updating best stats according to valid ll
+                    if valid_avg_ll > best_valid_avg_ll:
+                        best_valid_avg_ll = valid_avg_ll
+                        best_state['alpha'] = alpha
+                        best_state['m_inst'] = min_instances
+                        best_state['m_feat'] = min_features
+                        best_state['time'] = learning_time
+                        best_state['train_ll'] = train_avg_ll
+                        best_state['valid_ll'] = valid_avg_ll
+                        best_state['test_ll'] = test_avg_ll
+                        shutil.copy2(out_path + '/c' + str(c) +'train.lls',out_path+'/besttrain.lls')
+                        shutil.copy2(out_path + '/c' + str(c) +'test.lls',out_path+'/besttest.lls')
+                        shutil.copy2(out_path + '/c' + str(c) +'valid.lls',out_path+'/bestvalid.lls')
+                    os.remove(out_path + '/c' + str(c) +'train.lls')
+                    os.remove(out_path + '/c' + str(c) +'test.lls')
+                    os.remove(out_path + '/c' + str(c) +'valid.lls')
+
+                    or_nodes = sum(C.or_nodes[:c])/c
+                    and_nodes = sum(C.and_nodes[:c])/c
+                    leaf_nodes = sum(C.leaf_nodes[:c])/c
+                    or_edges = sum(C.or_edges[:c])/c
+                    clt_edges = sum(C.clt_edges[:c])/c
+                    cltrees = sum(C.cltrees[:c])/c
+                    clforests = sum(C.clforests[:c])/c
+                    depth = sum(C.depth[:c])/c
+                    mdepth = sum(C.mdepth[:c])/c
+
 
 
                     #
-                    # gathering statistics
-        #            n_nodes = csn.n_nodes()
-        #            n_levels = csn.n_levels()
-        #            n_leaves = csn.n_leaves()
-
-                    for c in n_components:
-                        #
-                        # Compute LL on training set
-
-                        out_filename = out_path + '/c' + str(c) +'train.lls'
-                        logging.info('Evaluating on training set')
-                        train_avg_ll = C.score_samples(train, c, out_filename)
-
-                        #
-                        # Compute LL on validation set
-                        out_filename = out_path + '/c' + str(c) +'valid.lls'
-                        logging.info('Evaluating on validation set')
-                        valid_avg_ll = C.score_samples(valid, c, out_filename)
-
-                        #
-                        # Compute LL on test set
-                        out_filename = out_path + '/c' + str(c) +'test.lls'
-                        logging.info('Evaluating on test set')
-                        test_avg_ll = C.score_samples(test, c, out_filename)
-
-                        #
-                        # updating best stats according to valid ll
-                        if valid_avg_ll > best_valid_avg_ll:
-                            best_valid_avg_ll = valid_avg_ll
-                            best_state['alpha'] = alpha
-                            best_state['beta'] = beta
-                            best_state['m_inst'] = min_instances
-                            best_state['m_feat'] = min_features
-                            best_state['time'] = learning_time
-                            best_state['train_ll'] = train_avg_ll
-                            best_state['valid_ll'] = valid_avg_ll
-                            best_state['test_ll'] = test_avg_ll
-                            shutil.copy2(out_path + '/c' + str(c) +'train.lls',out_path+'/besttrain.lls')
-                            shutil.copy2(out_path + '/c' + str(c) +'test.lls',out_path+'/besttest.lls')
-                            shutil.copy2(out_path + '/c' + str(c) +'valid.lls',out_path+'/bestvalid.lls')
-                        os.remove(out_path + '/c' + str(c) +'train.lls')
-                        os.remove(out_path + '/c' + str(c) +'test.lls')
-                        os.remove(out_path + '/c' + str(c) +'valid.lls')
-
-                        or_nodes = sum(C.or_nodes[:c])/c
-                        and_nodes = sum(C.and_nodes[:c])/c
-                        leaf_nodes = sum(C.leaf_nodes[:c])/c
-                        or_edges = sum(C.or_edges[:c])/c
-                        clt_edges = sum(C.clt_edges[:c])/c
-                        cltrees = sum(C.cltrees[:c])/c
-                        clforests = sum(C.clforests[:c])/c
-                        depth = sum(C.depth[:c])/c
-                        mdepth = sum(C.mdepth[:c])/c
-
-                        
-
-                        #
-                        # writing to file a line for the grid
-                        stats = stats_format([c,
-                                              alpha,
-                                              beta,
-                                              min_instances,
-                                              min_features,
-                                              or_nodes,
-                                              and_nodes,
-                                              leaf_nodes,
-                                              or_edges,
-                                              clt_edges,
-                                              cltrees,
-                                              clforests,
-                                              depth,
-                                              mdepth,
-                                              learning_time,
-                                              train_avg_ll,
-                                              valid_avg_ll,
-                                              test_avg_ll],
-                                             ',',
-                                             digits=5)
-                        out_log.write(stats + '\n')
-                        out_log.flush()
+                    # writing to file a line for the grid
+                    stats = stats_format([c,
+                                          alpha,
+                                          min_instances,
+                                          min_features,
+                                          or_nodes,
+                                          and_nodes,
+                                          leaf_nodes,
+                                          or_edges,
+                                          clt_edges,
+                                          cltrees,
+                                          clforests,
+                                          depth,
+                                          mdepth,
+                                          learning_time,
+                                          train_avg_ll,
+                                          valid_avg_ll,
+                                          test_avg_ll],
+                                         ',',
+                                         digits=5)
+                    out_log.write(stats + '\n')
+                    out_log.flush()
 
     #
     # writing as last line the best params

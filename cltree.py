@@ -104,8 +104,7 @@ class Cltree:
     def is_forest(self):
         return self._forest
 
-    def fit(self, X, m_priors, j_priors, alpha=1.0, beta = 1.0,
-                 sample_weight=None, scope=None, and_leaves=False):
+    def fit(self, X, m_priors, j_priors, alpha=1.0, sample_weight=None, scope=None, and_leaves=False):
         """Fit the model to the data.
 
         Parameters
@@ -122,8 +121,6 @@ class Cltree:
         alpha: float, default=1.0
         the constant for the smoothing
 
-        beta: float, default=1.0
-
         sample_weight: ndarray, shape=(n,)
         The weight of each sample.
 
@@ -135,7 +132,6 @@ class Cltree:
         """
 
         self.alpha = alpha
-        self.beta = beta
         self.and_leaves = and_leaves
         self.n_features = X.shape[1]
 

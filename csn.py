@@ -46,7 +46,7 @@ class Csn:
         Csn._mean_depth = 0
     
     def __init__(self, data, clt = None, ll = 0.0,  min_instances = 5, min_features = 3, 
-                 alpha = 1.0, beta = 1.0, d = None, n_original_samples = None,
+                 alpha = 1.0, d = None, n_original_samples = None,
                  random_forest = False, m_priors = None, j_priors = None, 
                  and_leaves=False, and_inners=False, min_gain = None, depth = 1,
                  sample_weight=None):
@@ -56,7 +56,6 @@ class Csn:
         self.and_leaves = and_leaves
         self.and_inners = and_inners
         self.alpha = alpha
-        self.beta = beta
         self.depth = depth
         self.data = data
         self.node = TreeNode()
@@ -109,7 +108,7 @@ class Csn:
 
         if clt is None:
             self.node.cltree = Cltree()
-            self.node.cltree.fit(data, self.m_priors, self.j_priors, alpha=self.alpha, beta=self.beta, 
+            self.node.cltree.fit(data, self.m_priors, self.j_priors, alpha=self.alpha, 
                                  and_leaves=self.and_leaves, sample_weight=self.sample_weight)
             self.orig_ll = self.node.cltree.score_samples_log_proba(self.data, sample_weight=self.sample_weight)
             self.d = int(math.sqrt(self.data.shape[1]))
@@ -349,9 +348,9 @@ class Csn:
                             CL_l = Cltree()
                             CL_r = Cltree()
 
-                            CL_l.fit(left_data,self.m_priors,self.j_priors,scope=left_scope,alpha=self.alpha*left_weight, beta=self.beta,
+                            CL_l.fit(left_data,self.m_priors,self.j_priors,scope=left_scope,alpha=self.alpha*left_weight, 
                                           and_leaves=self.and_leaves, sample_weight = left_sample_weight)
-                            CL_r.fit(right_data,self.m_priors,self.j_priors,scope=right_scope,alpha=self.alpha*right_weight, beta=self.beta,
+                            CL_r.fit(right_data,self.m_priors,self.j_priors,scope=right_scope,alpha=self.alpha*right_weight, 
                                           and_leaves=self.and_leaves, sample_weight = right_sample_weight)
 
                             l_ll = CL_l.score_samples_log_proba(left_data)
@@ -417,7 +416,7 @@ class Csn:
                                                          m_priors = self.m_priors, j_priors = self.j_priors,
                                                          n_original_samples = self.n_original_samples,
                                                          and_leaves=self.and_leaves, and_inners=self.and_inners,
-                                                         min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
+                                                         min_gain = self.min_gain, depth=self.depth+1,
                                                          sample_weight = best_left_sample_weight)
                         self.node.children_right[i] = Csn(data=best_right_data, 
                                                           clt=best_clt_r, ll=best_r_ll, 
@@ -427,7 +426,7 @@ class Csn:
                                                           m_priors = self.m_priors, j_priors = self.j_priors,
                                                           n_original_samples = self.n_original_samples,
                                                           and_leaves=self.and_leaves, and_inners=self.and_inners,
-                                                          min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
+                                                          min_gain = self.min_gain, depth=self.depth+1,
                                                           sample_weight = best_right_sample_weight)
 
 
@@ -493,9 +492,9 @@ class Csn:
             cluster_0_weight = cluster_0_data.shape[0] / self.data.shape[0]
             cluster_1_weight = cluster_1_data.shape[0] / self.data.shape[0]
 
-            cluster_0_tree.fit(cluster_0_data,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*cluster_0_weight, beta=self.beta,
+            cluster_0_tree.fit(cluster_0_data,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*cluster_0_weight, 
                        and_leaves=self.and_leaves, sample_weight = None)
-            cluster_1_tree.fit(cluster_1_data,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*cluster_1_weight, beta=self.beta,
+            cluster_1_tree.fit(cluster_1_data,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*cluster_1_weight, 
                        and_leaves=self.and_leaves, sample_weight = None)
 
             cluster_0_ll = cluster_0_tree.score_samples_log_proba(cluster_0_data, sample_weight = None)
@@ -549,9 +548,9 @@ class Csn:
                 CL_l = Cltree()
                 CL_r = Cltree()
 
-                CL_l.fit(left_data,self.m_priors,self.j_priors,scope=left_scope,alpha=self.alpha*left_weight, beta=self.beta,
+                CL_l.fit(left_data,self.m_priors,self.j_priors,scope=left_scope,alpha=self.alpha*left_weight, 
                               and_leaves=self.and_leaves, sample_weight = left_sample_weight)
-                CL_r.fit(right_data,self.m_priors,self.j_priors,scope=right_scope,alpha=self.alpha*right_weight, beta=self.beta,
+                CL_r.fit(right_data,self.m_priors,self.j_priors,scope=right_scope,alpha=self.alpha*right_weight, 
                               and_leaves=self.and_leaves, sample_weight = right_sample_weight)
 
                 l_ll = CL_l.score_samples_log_proba(left_data, sample_weight = left_sample_weight)
@@ -616,7 +615,7 @@ class Csn:
                                            m_priors = self.m_priors, j_priors = self.j_priors,
                                            n_original_samples = self.n_original_samples,
                                            and_leaves=self.and_leaves, and_inners=self.and_inners,
-                                           min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
+                                           min_gain = self.min_gain, depth=self.depth+1,
                                            sample_weight = best_left_sample_weight)
                 self.node.right_child = Csn(data=best_right_data, 
                                             clt=best_clt_r, ll=best_r_ll, 
@@ -626,7 +625,7 @@ class Csn:
                                             m_priors = self.m_priors, j_priors = self.j_priors,
                                             n_original_samples = self.n_original_samples,
                                             and_leaves=self.and_leaves, and_inners=self.and_inners,
-                                            min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
+                                            min_gain = self.min_gain, depth=self.depth+1,
                                             sample_weight = best_right_sample_weight)
 
             else:
@@ -649,7 +648,7 @@ class Csn:
                                               m_priors = self.m_priors, j_priors = self.j_priors,
                                               n_original_samples = self.n_original_samples,
                                               and_leaves=self.and_leaves, and_inners=self.and_inners,
-                                              min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
+                                              min_gain = self.min_gain, depth=self.depth+1,
                                               sample_weight = None))
                 self.node.children.append(Csn(data=cluster_1_data, 
                                               clt=cluster_1_tree, ll=cluster_1_ll, 
@@ -659,7 +658,7 @@ class Csn:
                                               m_priors = self.m_priors, j_priors = self.j_priors,
                                               n_original_samples = self.n_original_samples,
                                               and_leaves=self.and_leaves, and_inners=self.and_inners,
-                                              min_gain = self.min_gain, beta=self.beta, depth=self.depth+1,
+                                              min_gain = self.min_gain, depth=self.depth+1,
                                               sample_weight = None))
 
         else:

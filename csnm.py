@@ -28,7 +28,7 @@ def csv_2_numpy(file, path=DATA_PATH, sep=',', type='int'):
 class Csnm:
     
     def __init__(self, training_data, sample_weight = None, max_components=1,
-                 p=1.0, min_instances=5, min_features=3, alpha=1.0, random_forest=False, beta=1.0,
+                 p=1.0, min_instances=5, min_features=3, alpha=1.0, random_forest=False, 
                  and_leaves=False, and_inners=False):
 
         self.max_components = max_components
@@ -42,7 +42,6 @@ class Csnm:
 
         self.alpha = int(self.training_data.shape[0]*alpha/100)
         logger.info("Setting alpha to %d",self.alpha)
-        self.beta = beta
 
         self.p = p
         self.random_forest = random_forest
@@ -104,7 +103,6 @@ class Csnm:
                                    min_instances=self.min_instances, min_features=self.min_features, alpha=self.alpha, 
                                    random_forest=self.random_forest,
                                    and_leaves=self.and_leaves, and_inners=self.and_inners,
-                                   beta=self.beta,
                                    depth = 1)
 
 #            self.csns[i].show()

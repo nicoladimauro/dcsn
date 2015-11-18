@@ -17,7 +17,7 @@ random forest approach may be used.
 
     usage: dcsn.py [-h] [--seed [SEED]] [-o [OUTPUT]] [-r] [-k K [K ...]]
                    [-d D [D ...]] [-s S [S ...]] [-a ALPHA [ALPHA ...]]
-                   [-b BETA [BETA ...]] [--al] [--an] [-v [VERBOSE]]
+                   [--al] [--an] [-v [VERBOSE]]
                    dataset
 
     positional arguments:
@@ -36,8 +36,6 @@ random forest approach may be used.
       -s S [S ...]          Min number of features in a slice to split.
       -a ALPHA [ALPHA ...], --alpha ALPHA [ALPHA ...]
                             Smoothing factor for leaf probability estimation
-      -b BETA [BETA ...], --beta BETA [BETA ...]
-                            beta parameter for and nodes
       --al                  Use and nodes as leaves (i.e., CL forests).
       --an                  Use and nodes as inner nodes and leaves (i.e., CL
                             forests).
