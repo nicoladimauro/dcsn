@@ -61,6 +61,9 @@ parser.add_argument('-o', '--output', type=str, nargs='?',
 parser.add_argument('-r', '--random', action='store_true', default=False,
                     help='Random Forest. If set a Random Forest approach is used.')
 
+parser.add_argument('--sum', action='store_true', default=False,
+                    help='Use sum nodes.')
+
 parser.add_argument('-k', type=int, nargs='+',
                     default=[1],
                     help='Number of components to use. If greater than 1, then a bagging approach is used.')
@@ -112,6 +115,8 @@ m_features = args.s
 
 and_leaf = args.al
 and_node = args.an
+
+sum_nodes = args.sum
 
 #
 # elaborating the dataset
@@ -182,7 +187,7 @@ with open(out_log_path, 'w') as out_log:
                          min_features=min_features, 
                          alpha=alpha, random_forest=rf,
                          and_leaves = and_leaf,
-                         and_inners = and_node)
+                         and_inners = and_node,sum_nodes = sum_nodes)
 
                 C.fit()
 
@@ -236,7 +241,7 @@ with open(out_log_path, 'w') as out_log:
                     os.remove(out_path + '/c' + str(c) +'valid.lls')
 
                     or_nodes = sum(C.or_nodes[:c])/c
-                    sum_nodes = sum(C.sum_nodes[:c])/c
+                    n_sum_nodes = sum(C.sum_nodes[:c])/c
                     and_nodes = sum(C.and_nodes[:c])/c
                     leaf_nodes = sum(C.leaf_nodes[:c])/c
                     or_edges = sum(C.or_edges[:c])/c
@@ -255,7 +260,7 @@ with open(out_log_path, 'w') as out_log:
                                           min_instances,
                                           min_features,
                                           or_nodes,
-                                          sum_nodes,
+                                          n_sum_nodes,
                                           and_nodes,
                                           leaf_nodes,
                                           or_edges,

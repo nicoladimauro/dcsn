@@ -29,7 +29,7 @@ class Csnm:
     
     def __init__(self, training_data, sample_weight = None, max_components=1,
                  p=1.0, min_instances=5, min_features=3, alpha=1.0, random_forest=False, 
-                 and_leaves=False, and_inners=False):
+                 and_leaves=False, and_inners=False, sum_nodes=False):
 
         self.max_components = max_components
         self.training_data = training_data
@@ -40,6 +40,7 @@ class Csnm:
         if self.and_leaves:
             self.and_nodes = True
 
+        self.sum_nodes = sum_nodes
         self.alpha = int(self.training_data.shape[0]*alpha/100)
         logger.info("Setting alpha to %d",self.alpha)
 
@@ -57,7 +58,7 @@ class Csnm:
 
 
         self.or_nodes = [0.0] * self.max_components
-        self.sum_nodes = [0.0] * self.max_components
+        self.n_sum_nodes = [0.0] * self.max_components
         self.leaf_nodes = [0.0] * self.max_components
         self.or_edges = [0.0] * self.max_components
         self.clt_edges = [0.0] * self.max_components
@@ -104,12 +105,12 @@ class Csnm:
                                    min_instances=self.min_instances, min_features=self.min_features, alpha=self.alpha, 
                                    random_forest=self.random_forest,
                                    and_leaves=self.and_leaves, and_inners=self.and_inners,
-                                   depth = 1)
+                                   depth = 1, sum_nodes=self.sum_nodes)
 
             self.csns[i].show()
             self.lls[i] = self.csns[i].score_samples_log_proba(self.training_data)
             self.or_nodes[i] = CSN.Csn._or_nodes 
-            self.sum_nodes[i] = CSN.Csn._sum_nodes 
+            self.n_sum_nodes[i] = CSN.Csn._sum_nodes 
             self.leaf_nodes[i] = CSN.Csn._leaf_nodes
             self.or_edges[i] = CSN.Csn._or_edges
             self.clt_edges[i] = CSN.Csn._clt_edges

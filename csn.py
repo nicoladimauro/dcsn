@@ -51,7 +51,7 @@ class Csn:
                  alpha = 1.0, d = None, n_original_samples = None,
                  random_forest = False, m_priors = None, j_priors = None, 
                  and_leaves=False, and_inners=False, min_gain = None, depth = 1,
-                 sample_weight=None):
+                 sample_weight=None, sum_nodes_False):
 
         self.min_instances = min_instances
         self.min_features = min_features
@@ -62,6 +62,7 @@ class Csn:
         self.data = data
         self.node = TreeNode()
         self.sample_weight = sample_weight
+        self.sum_nodes = sum_nodes
 
         if n_original_samples is None:
             self.n_original_samples = self.data.shape[0]
@@ -471,55 +472,57 @@ class Csn:
         best_right_sample_weight = None
                             
 
-        # check for clustering
-        n_clusters = 2
-        cov_type = 'tied'
-        rand_gen = None
-        n_iters = 1000
-        n_restarts=1
-        gmm_c = sklearn.mixture.GMM(n_components=n_clusters, covariance_type=cov_type,
-                                    random_state=rand_gen, n_iter=n_iters, n_init=n_restarts)
-        
-        gmm_c.fit(self.data)
-        
-        clustering = gmm_c.predict(self.data)
+        if self.sum_node:
 
-        # preventing to have a cluster with zero instances
-        cardinality = np.sum(clustering)
-        print("   - Clustering instances:",self.data.shape[0], "-", cardinality,self.data.shape[0] - cardinality, end=" ")
-        if cardinality > 0 and (self.data.shape[0] - cardinality) > 0:
+            # check for clustering
+            n_clusters = 2
+            cov_type = 'tied'
+            rand_gen = None
+            n_iters = 1000
+            n_restarts=1
+            gmm_c = sklearn.mixture.GMM(n_components=n_clusters, covariance_type=cov_type,
+                                        random_state=rand_gen, n_iter=n_iters, n_init=n_restarts)
 
-            cluster_0 = (clustering == 0)
+            gmm_c.fit(self.data)
 
-            cluster_0_data = self.data[cluster_0]
-            cluster_1_data = self.data[~cluster_0]
+            clustering = gmm_c.predict(self.data)
 
-            cluster_0_tree = Cltree()
-            cluster_1_tree = Cltree()
+            # preventing to have a cluster with zero instances
+            cardinality = np.sum(clustering)
+            print("   - Clustering instances:",self.data.shape[0], "-", cardinality,self.data.shape[0] - cardinality, end=" ")
+            if cardinality > 0 and (self.data.shape[0] - cardinality) > 0:
 
-            cluster_0_weight = cluster_0_data.shape[0] / self.data.shape[0]
-            cluster_1_weight = cluster_1_data.shape[0] / self.data.shape[0]
+                cluster_0 = (clustering == 0)
 
-            cluster_0_tree.fit(cluster_0_data,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*cluster_0_weight, 
-                       and_leaves=self.and_leaves, sample_weight = None)
-            cluster_1_tree.fit(cluster_1_data,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*cluster_1_weight, 
-                       and_leaves=self.and_leaves, sample_weight = None)
+                cluster_0_data = self.data[cluster_0]
+                cluster_1_data = self.data[~cluster_0]
 
-            cluster_0_ll = cluster_0_tree.score_samples_log_proba(cluster_0_data, sample_weight = None)
-            cluster_1_ll = cluster_1_tree.score_samples_log_proba(cluster_1_data, sample_weight = None)
+                cluster_0_tree = Cltree()
+                cluster_1_tree = Cltree()
 
-            # log sum exp
-            clustering_ll = 0.0
-            for d in self.data:
-                clustering_ll = clustering_ll + logr( cluster_0_weight * np.exp(cluster_0_tree.score_sample_log_proba(d)) + cluster_1_weight * np.exp(cluster_1_tree.score_sample_log_proba(d)))
-            clustering_ll = clustering_ll / self.data.shape[0]
+                cluster_0_weight = cluster_0_data.shape[0] / self.data.shape[0]
+                cluster_1_weight = cluster_1_data.shape[0] / self.data.shape[0]
 
-            print("ll:", clustering_ll)
+                cluster_0_tree.fit(cluster_0_data,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*cluster_0_weight, 
+                           and_leaves=self.and_leaves, sample_weight = None)
+                cluster_1_tree.fit(cluster_1_data,self.m_priors,self.j_priors,scope=self.scope,alpha=self.alpha*cluster_1_weight, 
+                           and_leaves=self.and_leaves, sample_weight = None)
 
+                cluster_0_ll = cluster_0_tree.score_samples_log_proba(cluster_0_data, sample_weight = None)
+                cluster_1_ll = cluster_1_tree.score_samples_log_proba(cluster_1_data, sample_weight = None)
+
+                # log sum exp
+                clustering_ll = 0.0
+                for d in self.data:
+                    clustering_ll = clustering_ll + logr( cluster_0_weight * np.exp(cluster_0_tree.score_sample_log_proba(d)) + cluster_1_weight * np.exp(cluster_1_tree.score_sample_log_proba(d)))
+                clustering_ll = clustering_ll / self.data.shape[0]
+
+                print("ll:", clustering_ll)
+
+            else:
+                clustering_ll = -np.inf
         else:
             clustering_ll = -np.inf
-
-#        clustering_ll = -np.inf
 
         if self.random_forest:
             if self.d > self.node.cltree.n_features:
@@ -550,7 +553,6 @@ class Csn:
                 right_weight = (right_data.shape[0] ) / (self.data.shape[0] )        
 
             if left_data.shape[0] > 0 and right_data.shape[0] > 0:          
-#            if left_data.shape[0] > self.min_instances and right_data.shape[0] > self.min_instances:
 
                 left_scope = np.concatenate((self.node.cltree.scope[0:feature],self.node.cltree.scope[feature+1:]))
                 right_scope = np.concatenate((self.node.cltree.scope[0:feature],self.node.cltree.scope[feature+1:]))
