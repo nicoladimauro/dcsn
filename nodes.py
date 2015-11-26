@@ -70,6 +70,7 @@ class AndNode(Node):
 
     def score_sample_log_proba(self, x):
         """ WRITEME """
+        prob = 0.0
         for i in range(len(self.tree_forest)):
             if self.or_features[i] == None:
                 prob = prob + self.cltree.score_sample_scope_log_proba(x,self.tree_forest[i])

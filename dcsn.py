@@ -143,6 +143,8 @@ preamble = ("""components,alpha,minst,mfeat,or_nodes,sum_nodes,and_nodes,leaf_no
 
 max_components = max(n_components)
 
+np.random.seed(1)
+
 with open(out_log_path, 'w') as out_log:
 
     out_log.write("parameters:\n{0}\n\n".format(args))

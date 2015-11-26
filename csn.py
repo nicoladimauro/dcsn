@@ -343,7 +343,7 @@ class Csn:
                             right_sample_weight = None
                             
 
-                        if left_data.shape[0]>self.min_instances and right_data.shape[0]>self.min_instances:
+                        if left_data.shape[0]>1 and right_data.shape[0]>1:
                             # compute the tree features id
                             tree_scope = np.zeros(tree_n_features, dtype=np.int)
                             for f in range(tree_n_features):
@@ -402,6 +402,7 @@ class Csn:
                             self.node.or_features = [None] * self.node.cltree.num_trees
                             self.node.left_weights = [None] * self.node.cltree.num_trees
                             self.node.right_weights = [None] * self.node.cltree.num_trees        
+                            self.node.tree_forest = self.tree_forest
                    
                         Csn._or_nodes = Csn._or_nodes + 1
                         Csn._or_edges = Csn._or_edges + 2
@@ -518,6 +519,7 @@ class Csn:
         else:
             clustering_ll = -np.inf
 
+#        clustering_ll = -np.inf
 
         if self.random_forest:
             if self.d > self.node.cltree.n_features:
@@ -588,12 +590,19 @@ class Csn:
                 best_right_sample_weight = right_sample_weight
                 
                 found = True
+        """
+        if (self.depth+1) % 2 == 0:
+            bestlik = self.orig_ll
+        else:
+            clustering_ll = self.orig_ll
+        """
 
         gain = (bestlik - self.orig_ll)
         print ("   - gain cut:", gain, end = "")
 
         gain_c = (clustering_ll - self.orig_ll)
         print (" gain clustering:", gain_c)
+
 
         if (found==True and gain > self.min_gain) or (gain_c > gain and gain_c > self.min_gain):
 
