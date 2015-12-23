@@ -1,6 +1,20 @@
 # dcsn
 dCSN is a package for learning Cutset Networks (CNets), a recently introduced tractable Probabilistic Graphical Model.
 
+## Copyright (C) 2015
+
+Nicola Di Mauro [nicola dot dimauro at uniba dot it]
+Antonio Vergari [antonio dot vergari at uniba dot it]
+
+This file is part of dCSN.
+    
+dCSN is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation (version 2).
+
+dCSN is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, see [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/)
+
+
 ## Usage
 
     python dcsn.py nltcs -k 1 -a 0.4
