@@ -58,6 +58,7 @@ class AndNode(Node):
     _node_type = "and"
 
     def __init__(self):
+        Node.__init__(self)
         self.children_left = None
         self.children_right = None
         self.or_features = None
@@ -89,6 +90,7 @@ class TreeNode(Node):
     _node_type = "tree"
 
     def __init__(self):
+        Node.__init__(self)
         self.cltree = None
 
     def score_sample_log_proba(self, x):

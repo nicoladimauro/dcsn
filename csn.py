@@ -51,7 +51,7 @@ class Csn:
                  alpha = 1.0, d = None, n_original_samples = None,
                  random_forest = False, m_priors = None, j_priors = None, 
                  and_leaves=False, and_inners=False, min_gain = None, depth = 1,
-                 sample_weight=None, sum_nodes_False):
+                 sample_weight=None, sum_nodes=False):
 
         self.min_instances = min_instances
         self.min_features = min_features
@@ -472,7 +472,7 @@ class Csn:
         best_right_sample_weight = None
                             
 
-        if self.sum_node:
+        if self.sum_nodes:
 
             # check for clustering
             n_clusters = 2
