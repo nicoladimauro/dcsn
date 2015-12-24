@@ -45,9 +45,9 @@ random forest approach may be used.
 
 ## Copyright (C) 2015
 
-Nicola Di Mauro, Antonio Vergari
-Department of Computer Science
-University of Bari, Bari, Italy
+Nicola Di Mauro, Antonio Vergari 
+Department of Computer Science 
+University of Bari, Bari, Italy 
 
 This file is part of dCSN.
     
