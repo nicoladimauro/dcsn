@@ -241,7 +241,7 @@ with open(out_log_path, 'w') as out_log:
                     os.remove(out_path + '/c' + str(c) +'valid.lls')
 
                     or_nodes = sum(C.or_nodes[:c])/c
-                    n_sum_nodes = sum(C.sum_nodes[:c])/c
+                    n_sum_nodes = sum(C.n_sum_nodes[:c])/c
                     and_nodes = sum(C.and_nodes[:c])/c
                     leaf_nodes = sum(C.leaf_nodes[:c])/c
                     or_edges = sum(C.or_edges[:c])/c
