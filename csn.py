@@ -64,6 +64,8 @@ class Csn:
         self.sample_weight = sample_weight
         self.sum_nodes = sum_nodes
 
+        self.n = data.shape[1]
+
         if n_original_samples is None:
             self.n_original_samples = self.data.shape[0]
         else:
@@ -212,24 +214,31 @@ class Csn:
                 print(self.node.cltree.scope)
 
 
-    def mpe(self, x):
+    def mpe(self, evidence = {}):
         """ WRITEME """
-        if self._leaf:
-            self.cltree.mpe(x)
-        elif self._and:
-            print("TODO")
-        else:
-            self.left_child.mpe(x)
-            self.right_child.mpe(x)
-            lv = self.left_child.mpe_value * left_weight
-            rv = self.right_child.mpe_value * right_weight
-            # maximization
-            if lv > rv:
-                self.mpe_value = lv
-                self.mpe_state = 0
-            else:
-                self.mpe_value = rv
-                self.mpe_state = 1
+        return self.node.mpe(evidence)
+
+    def naiveMPE(self, evidence = {}):
+        maxprob = -np.inf
+        maxstate = []
+
+        worlds = list(itertools.product([0, 1], repeat=self.n))
+
+        for w in worlds:
+            ver = True
+            for var, state in evidence.items():
+                if w[var] != state:
+                    ver = False
+                    break
+
+            if ver:
+                prob = self.score_sample_log_proba(w)
+                if prob > maxprob:
+                    maxprob = prob
+                    maxstate = w
+
+        return (maxstate, maxprob)
+
 
 
     def score_sample_log_proba(self,x):
@@ -611,6 +620,7 @@ class Csn:
             if (gain > gain_c):
             
                 self.node = OrNode()
+                self.node.or_feature_scope = self.scope[best_feature_cut]
                 Csn._or_nodes = Csn._or_nodes + 1
                 Csn._or_edges = Csn._or_edges + 2
 

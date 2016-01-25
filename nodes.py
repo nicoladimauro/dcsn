@@ -1,6 +1,6 @@
 import numpy as np
 from logr import logr
-
+#from pudb import set_trace
 class Node(object):
     """Base class for all nodes
     """
@@ -22,6 +22,7 @@ class OrNode(Node):
         self.left_weight = 0.0
         self.right_weight = 0.0
         self.or_feature = None
+        self.or_feature_scope = None
 
     def score_sample_log_proba(self, x):
         """ WRITEME """
@@ -32,6 +33,46 @@ class OrNode(Node):
         else:
             prob = prob + logr(self.right_weight) + self.right_child.score_sample_log_proba(x1)
         return prob
+
+    def mpe(self, evidence={}):
+#        set_trace()
+        mpe_log_proba = 0.0
+
+        state_evidence = evidence.get(self.or_feature_scope)
+        if state_evidence is not None:
+
+            if state_evidence == 0:
+                (mpe_state, mpe_log_proba) = self.left_child.mpe(evidence)
+
+                mpe_state[self.or_feature_scope] = 0
+
+                mpe_log_proba += logr(self.left_weight)
+            else:
+                (mpe_state, mpe_log_proba) = self.right_child.mpe(evidence)
+
+                mpe_state[self.or_feature_scope] = 1
+
+                mpe_log_proba += logr(self.right_weight)
+        else:
+            (left_mpe_state, left_mpe_log_proba) = self.left_child.mpe(evidence)
+            (right_mpe_state, right_mpe_log_proba) = self.right_child.mpe(evidence)
+            if left_mpe_log_proba + logr(self.left_weight) > right_mpe_log_proba + logr(self.right_weight):
+
+                mpe_state = left_mpe_state
+
+                mpe_state[self.or_feature_scope] = 0
+
+                mpe_log_proba = left_mpe_log_proba + logr(self.left_weight)
+            else:
+
+                mpe_state = right_mpe_state
+
+                mpe_state[self.or_feature_scope] = 1
+
+                mpe_log_proba = right_mpe_log_proba + logr(self.right_weight)
+
+
+        return (mpe_state, mpe_log_proba)
 
 
 class SumNode(Node):
@@ -96,6 +137,9 @@ class TreeNode(Node):
     def score_sample_log_proba(self, x):
         """ WRITEME """
         return self.cltree.score_sample_log_proba(x)
+            
+    def mpe(self, evidence={}):
+        return self.cltree.mpe(evidence)
 
 
 ###############################################################################

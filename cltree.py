@@ -15,6 +15,8 @@ from scipy.sparse.csgraph import depth_first_order
 from logr import logr
 from utils import check_is_fitted
 
+import itertools
+
 ###############################################################################
 
 @numba.njit
@@ -155,6 +157,7 @@ class Cltree:
         dfs_tree = depth_first_order(mst, directed=False, i_start=0)
 
         self.df_order = dfs_tree[0]
+        self.post_order = dfs_tree[0][::-1]
         self.tree = np.zeros(self.n_features, dtype=np.int)
         self.tree[0] = -1
         for p in range(1, self.n_features):
@@ -280,3 +283,98 @@ class Cltree:
                 prob = prob + self.log_factors[feature, x[feature], x[parent]]
         return prob
 
+    def mpe(self, evidence = {}):
+        messages = np.zeros((self.n_features, 2))
+        states = [ [0,0] for i in range(self.n_features) ] 
+        MAP = {}
+
+        for i in self.post_order:
+            if i != 0:
+                state_evidence = evidence.get(self.scope[i])
+                if state_evidence != None:
+                    states[i][0] = state_evidence
+                    states[i][1] = state_evidence
+                    messages[self.tree[i],0]+= self.log_factors[i,state_evidence,0]+messages[i,state_evidence]
+                    messages[self.tree[i],1]+= self.log_factors[i,state_evidence,1]+messages[i,state_evidence]
+                else:
+                    state_evidence_parent = evidence.get(self.scope[self.tree[i]])
+                    if state_evidence_parent != None:
+                        if (self.log_factors[i,0,state_evidence_parent] +messages[i,0] > self.log_factors[i,1,state_evidence_parent] + messages[i,1]):
+                            states[i][state_evidence_parent] = 0
+                            messages[self.tree[i],state_evidence_parent]+= self.log_factors[i,0,state_evidence_parent]+messages[i,0]
+                        else:
+                            states[i][state_evidence_parent] = 1
+                            messages[self.tree[i],state_evidence_parent]+= self.log_factors[i,1,state_evidence_parent]+messages[i,1]
+                    else:
+
+                        for parent in range(2):
+                            if (self.log_factors[i,0,parent]+messages[i,0] > self.log_factors[i,1,parent]+messages[i,1]):
+                                states[i][parent] = 0
+                                messages[self.tree[i],parent]+= self.log_factors[i,0,parent]+messages[i,0]
+
+                            else:
+                                states[i][parent] = 1
+                                messages[self.tree[i],parent]+= self.log_factors[i,1,parent]+messages[i,1]
+
+        logprob = 0.0
+        for i in self.df_order:
+            if self.tree[i]==-1:
+                state_evidence = evidence.get(i)
+                if state_evidence != None:
+                    MAP[self.scope[i]] = state_evidence
+                    logprob += self.log_factors[i,MAP[self.scope[i]],0]
+                else:
+                    if self.log_factors[i,0,0]+messages[i,0]>self.log_factors[i,1,0]+messages[i,1]:
+                        MAP[self.scope[i]] = 0
+                    else:
+                        MAP[self.scope[i]] = 1
+                    logprob += self.log_factors[i,MAP[self.scope[i]],0]
+            else:
+                MAP[self.scope[i]] = states[i][MAP[self.scope[self.tree[i]]]]
+                logprob += self.log_factors[i,MAP[self.scope[i]],MAP[self.scope[self.tree[i]]]]
+
+
+        return (MAP, logprob)
+        
+
+    def naiveMPE(self, evidence = {}):
+        maxprob = -np.inf
+        maxstate = []
+
+        worlds = list(itertools.product([0, 1], repeat=self.n_features))
+
+        for w in worlds:
+            ver = True
+            for var, state in evidence.items():
+                if w[var] != state:
+                    ver = False
+                    break
+
+            if ver:
+                prob = self.log_factors[0, w[0], 0]
+                for i in range(1,self.n_features):
+                    prob = prob + self.log_factors[i, w[i], w[self.tree[i]]]
+                if prob > maxprob:
+                    maxprob = prob
+                    maxstate = w
+
+        return (maxstate, maxprob)
+
+"""
+C = Cltree()
+X = np.random.choice([0,1], size=(2000,15))
+m_priors = np.ones((15,2))/2
+j_priors = np.ones((15,15,2,2))/4
+C.fit(X, m_priors, j_priors)
+print (C.mpe())
+print(C.naiveMPE())
+
+evidence = {}
+evidence[2]=0
+evidence[5]=1
+evidence[7]=0
+evidence[0]=0
+
+print (C.mpe(evidence=evidence))
+print(C.naiveMPE(evidence=evidence))
+"""

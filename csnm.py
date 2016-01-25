@@ -120,9 +120,17 @@ class Csnm:
             self.depth[i] = CSN.Csn._depth
             self.mdepth[i] = CSN.Csn._mean_depth / CSN.Csn._leaf_nodes
 
+            evidence = {}
+            evidence[7]=1
+            evidence[8]=0
+
+            print(self.mpe(evidence))
+            print(self.naiveMPE(evidence))
+
 #            print("Correct:", self.csns[i].check_correctness(self.bags[i].shape[1]))
 
-        
+
+
     def compute_weights(self, n_c):
         sum_ll = 0.0
         for i in range(n_c):
@@ -142,6 +150,16 @@ class Csnm:
                 out_log.write('%.10f\n'%logr(prob))
         out_log.close()
         return mean / data.shape[0]
+
+    def mpe(self, evidence = {}):
+        if self.max_components > 1:
+            raise mpeError("mpe can be executed with 1 components only.")
+        return self.csns[0].mpe(evidence)
+
+    def naiveMPE(self, evidence = {}):
+        if self.max_components > 1:
+            raise mpeError("mpe can be executed with 1 components only.")
+        return self.csns[0].naiveMPE(evidence)
 
 
     def check_correctness(self):
