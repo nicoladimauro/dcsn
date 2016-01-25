@@ -49,7 +49,7 @@ class Csn:
     
     def __init__(self, data, clt = None, ll = 0.0,  min_instances = 5, min_features = 3, 
                  alpha = 1.0, d = None, n_original_samples = None,
-                 random_forest = False, m_priors = None, j_priors = None, 
+                 random_forest = False, leaf_vars = [], m_priors = None, j_priors = None, 
                  and_leaves=False, and_inners=False, min_gain = None, depth = 1,
                  sample_weight=None, sum_nodes=False):
 
@@ -63,6 +63,8 @@ class Csn:
         self.node = TreeNode()
         self.sample_weight = sample_weight
         self.sum_nodes = sum_nodes
+
+        self.leaf_vars = leaf_vars
 
         self.n = data.shape[1]
 
@@ -533,14 +535,20 @@ class Csn:
         else:
             clustering_ll = -np.inf
 
+        cutting_features = []
+        for f in range(self.node.cltree.n_features):
+            if self.scope[f] not in self.leaf_vars:
+                cutting_features.append(f)
+        
+
         if self.random_forest:
-            if self.d > self.node.cltree.n_features:
-                selected = range(self.node.cltree.n_features)
+            if self.d > len(cutting_feaures):
+                selected = cutting_features
             else:
-                selected = sorted(random.sample(range(self.node.cltree.n_features), self.d))
+                selected = sorted(random.sample(cutting_features, self.d))
 
         else:
-            selected = range(self.node.cltree.n_features)
+            selected = cutting_features
 
 
         for feature in selected:
@@ -601,12 +609,6 @@ class Csn:
                 best_right_sample_weight = right_sample_weight
                 
                 found = True
-        """
-        if (self.depth+1) % 2 == 0:
-            bestlik = self.orig_ll
-        else:
-            clustering_ll = self.orig_ll
-        """
 
         gain = (bestlik - self.orig_ll)
         print ("   - gain cut:", gain, end = "")
@@ -640,6 +642,7 @@ class Csn:
                                            min_instances=self.min_instances, 
                                            min_features=self.min_features, alpha=self.alpha*best_left_weight, 
                                            d=self.d, random_forest=self.random_forest,
+                                           leaf_vars = self.leaf_vars,
                                            m_priors = self.m_priors, j_priors = self.j_priors,
                                            n_original_samples = self.n_original_samples,
                                            and_leaves=self.and_leaves, and_inners=self.and_inners,
@@ -650,6 +653,7 @@ class Csn:
                                             min_instances=self.min_instances, 
                                             min_features=self.min_features, alpha=self.alpha*best_right_weight, d=self.d, 
                                             random_forest=self.random_forest,
+                                            leaf_vars = self.leaf_vars,
                                             m_priors = self.m_priors, j_priors = self.j_priors,
                                             n_original_samples = self.n_original_samples,
                                             and_leaves=self.and_leaves, and_inners=self.and_inners,

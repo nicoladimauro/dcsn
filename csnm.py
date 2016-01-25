@@ -28,7 +28,7 @@ def csv_2_numpy(file, path=DATA_PATH, sep=',', type='int'):
 class Csnm:
     
     def __init__(self, training_data, sample_weight = None, max_components=1,
-                 p=1.0, min_instances=5, min_features=3, alpha=1.0, random_forest=False, 
+                 p=1.0, min_instances=5, min_features=3, alpha=1.0, random_forest=False, leaf_vars = [],
                  and_leaves=False, and_inners=False, sum_nodes=False):
 
         self.max_components = max_components
@@ -39,6 +39,8 @@ class Csnm:
         self.and_inners = and_inners
         if self.and_leaves:
             self.and_nodes = True
+
+        self.leaf_vars = leaf_vars
 
         self.sum_nodes = sum_nodes
         self.alpha = int(self.training_data.shape[0]*alpha/100)
@@ -104,6 +106,7 @@ class Csnm:
                                    n_original_samples = self.bags[i].shape[0],
                                    min_instances=self.min_instances, min_features=self.min_features, alpha=self.alpha, 
                                    random_forest=self.random_forest,
+                                   leaf_vars = self.leaf_vars,
                                    and_leaves=self.and_leaves, and_inners=self.and_inners,
                                    depth = 1, sum_nodes=self.sum_nodes)
 
@@ -120,12 +123,6 @@ class Csnm:
             self.depth[i] = CSN.Csn._depth
             self.mdepth[i] = CSN.Csn._mean_depth / CSN.Csn._leaf_nodes
 
-            evidence = {}
-            evidence[7]=1
-            evidence[8]=0
-
-            print(self.mpe(evidence))
-            print(self.naiveMPE(evidence))
 
 #            print("Correct:", self.csns[i].check_correctness(self.bags[i].shape[1]))
 
