@@ -133,6 +133,7 @@ class Cltree:
 
         """
 
+
         self.alpha = alpha
         self.and_leaves = and_leaves
         self.n_features = X.shape[1]
@@ -182,10 +183,13 @@ class Cltree:
             self.tree[selected_MI[p][0]]=-1
         """
 
+
+
         self.num_edges = self.n_features - self.num_trees
         # computing the factored represetation
         self.log_factors = np.zeros((self.n_features, 2, 2))
         self.log_factors = compute_log_factors(self.tree, self.n_features, log_probs, log_c_probs, self.log_factors)
+
 
     def compute_log_probs(self, X, sample_weight, m_priors, j_priors):
         """ WRITEME """
