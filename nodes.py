@@ -35,43 +35,28 @@ class OrNode(Node):
         return prob
 
     def mpe(self, evidence={}):
-#        set_trace()
         mpe_log_proba = 0.0
-
         state_evidence = evidence.get(self.or_feature_scope)
         if state_evidence is not None:
-
             if state_evidence == 0:
                 (mpe_state, mpe_log_proba) = self.left_child.mpe(evidence)
-
                 mpe_state[self.or_feature_scope] = 0
-
                 mpe_log_proba += logr(self.left_weight)
             else:
                 (mpe_state, mpe_log_proba) = self.right_child.mpe(evidence)
-
                 mpe_state[self.or_feature_scope] = 1
-
                 mpe_log_proba += logr(self.right_weight)
         else:
             (left_mpe_state, left_mpe_log_proba) = self.left_child.mpe(evidence)
             (right_mpe_state, right_mpe_log_proba) = self.right_child.mpe(evidence)
             if left_mpe_log_proba + logr(self.left_weight) > right_mpe_log_proba + logr(self.right_weight):
-
                 mpe_state = left_mpe_state
-
                 mpe_state[self.or_feature_scope] = 0
-
                 mpe_log_proba = left_mpe_log_proba + logr(self.left_weight)
             else:
-
                 mpe_state = right_mpe_state
-
                 mpe_state[self.or_feature_scope] = 1
-
                 mpe_log_proba = right_mpe_log_proba + logr(self.right_weight)
-
-
         return (mpe_state, mpe_log_proba)
 
 

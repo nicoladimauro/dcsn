@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from csnm import csv_2_numpy, Csnm
+from csnm import Csnm
 import numpy as np
 import argparse
 import shutil
@@ -18,10 +18,9 @@ import datetime
 import os
 import logging
 import random
+import mlcmetrics
 
 DATA_PATH = 'data/'
-
-
 
 def load_train_valid_test_arff(dataset,
                              path=DATA_PATH,
@@ -53,87 +52,6 @@ def stats_format(stats_list, separator, digits=5):
     # concatenation
     return separator.join(formatted)
 
-
-def exact_match(C, X, n_labels):
-    c = 0
-    for x in X:
-        evidence = {}
-        for i in range(len(x)-n_labels):
-            evidence[i]=x[i]
-        (state, prob) = C.mpe(evidence = evidence)
-        Z = []
-        for i in range(len(x)-n_labels,len(x)):
-            Z.append(state[i])
-        exact = True
-        Y = x[-n_labels:]
-        for i in range(n_labels):
-            if Z[i]!=Y[i]:
-                exact = False
-                break
-        if exact == True:
-            c += 1
-    return (c / X.shape[0])
-
-def subset_accuracy(C, X, n_labels):
-    c = 0
-    for x in X:
-        evidence = {}
-        for i in range(len(x)-n_labels):
-            evidence[i]=x[i]
-        (state, prob) = C.mpe(evidence = evidence)
-        Z = []
-        for i in range(len(x)-n_labels,len(x)):
-            Z.append(state[i])
-        Y = x[-n_labels:]
-        for i in range(n_labels):
-            if Z[i]==Y[i]:
-                c +=1
-    return (c / X.shape[0])
-
-# Jaccard Index -- often simply called multi-label 'accuracy'. Multi-label only. 
-def accuracy(C, X, n_labels):
-    c = 0.0
-    for x in X:
-        evidence = {}
-        for i in range(len(x)-n_labels):
-            evidence[i]=x[i]
-        (state, prob) = C.mpe(evidence = evidence)
-        Z = []
-        for i in range(len(x)-n_labels,len(x)):
-            Z.append(state[i])
-        Y = x[-n_labels:]
-        union = 0
-        inter = 0
-        for i in range(n_labels):
-            if (Z[i]==1 and Y[i]==1):
-                inter += 1
-            if (Z[i]==1 or Y[i]==1):
-                union +=1
-        # = intersection / union; (or, if both sets are empty, then = 1.)
-        if (union > 0):
-            c = c + (inter / union)
-        else:
-            c = c + 1.0
-    return (c / X.shape[0])
-
-
-def hamming_loss(C, X, n_labels):
-    c = 0.0
-    for x in X:
-        evidence = {}
-        for i in range(len(x)-n_labels):
-            evidence[i]=x[i]
-        (state, prob) = C.mpe(evidence = evidence)
-        Z = []
-        for i in range(len(x)-n_labels,len(x)):
-            Z.append(state[i])
-        Y = x[-n_labels:]
-        loss = 0
-        for i in range(n_labels):
-            if (Z[i]!=Y[i]):
-                loss += 1
-        c = c + (loss / n_labels)
-    return (c / X.shape[0])
 
 
 
@@ -305,11 +223,21 @@ with open(out_log_path, 'w') as out_log:
                 for c in n_components:
                     #
                     # Compute LL on training set
+                    
+                    Y_pred = mlcmetrics.compute_predictions(C, train, n_labels)
+                    Y = mlcmetrics.extract_true_labels(train, n_labels)
+                    print("p_exact_match", mlcmetrics.p_exact_match(Y, Y_pred))
+                    print("l_hamming_loss", mlcmetrics.l_hamming_loss(Y, Y_pred))
+                    print("p_accuracy", mlcmetrics.p_accuracy(Y, Y_pred))
+                    print("p_precision_instances",mlcmetrics.p_precision_instances(Y, Y_pred))
+                    print("p_precision_macro",mlcmetrics.p_precision_macro(Y, Y_pred))
+                    print("p_precision_micro",mlcmetrics.p_precision_micro(Y, Y_pred))
+                    print("p_recall_instances",mlcmetrics.p_recall_instances(Y, Y_pred))
+                    print("p_recall_macro",mlcmetrics.p_recall_macro(Y, Y_pred))
+                    print("p_recall_micro",mlcmetrics.p_recall_micro(Y, Y_pred))
+                    print("p_F1_instances",mlcmetrics.p_F1_instances(Y, Y_pred))
+                    print("p_F1_micro",mlcmetrics.p_F1_micro(Y, Y_pred))
 
-                    print ("Exact match: ",exact_match(C, train, n_labels))
-                    print ("Subset accuracy: ",subset_accuracy(C, train, n_labels))
-                    print ("Accuracy: ",accuracy(C, train, n_labels))
-                    print ("Hamming loss: ",hamming_loss(C, train, n_labels))
 
                     out_filename = out_path + '/c' + str(c) +'train.lls'
                     logging.info('Evaluating on training set')
