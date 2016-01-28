@@ -31,9 +31,7 @@ args = parser.parse_args()
 (n_labels,) = args.c
 beginning_labels = args.b
 
-data = arff.load(open(dataset_name, 'r'),encode_nominal=True)
-
-print(dataset_name, n_labels, beginning_labels)
+data = arff.load(open(dataset_name+".arff", 'r'),encode_nominal=True)
 
 XY = np.array(data['data'])
 n_attributes = XY.shape[1]
@@ -58,9 +56,10 @@ def compute_LAIM(l, r, midpoint, XY, n_labels,i):
     return sum / (n_labels * np.sum(quanta_matrix))
         
     
-
-f = open("prova.arff","w")
-arff.dumps(data)
+# put the labels at the end
+if beginning_labels == True:
+    indexing = np.array([i for i in range(n_attributes-n_labels,n_attributes)]+[i for i in range(n_attributes-n_labels)])
+    XY = XY[:,indexing]
 
 
 unique_dict = {}
@@ -74,15 +73,16 @@ for attr in range(n_attributes-n_labels,n_attributes):
 #check for categorical attributes
 for (attr, domain) in data['attributes']:
     if isinstance(domain, list) and len(domain)>2:
-        print(attr, domain)
-#        raise CategoricalAttribute()
+        raise CategoricalAttribute()
+
+print("Discretizing", XY.shape[0], "instances, ", n_attributes-n_labels, "attributes, ", n_labels, "labels")
+
 # discretize
 discr_intervals = {}
-#for i in range(n_attributes-n_labels):
-for i in range(10):
+for i in range(n_attributes-n_labels):
     # check for numeric attribute
     if data['attributes'][i][1] == 'NUMERIC' or data['attributes'][i][1] == 'REAL':
-        print("attribute", i, end="")
+        print("attribute", i)
         max_LAIM = 0.0
         best_cut = 0.0
         for j in range(len(unique_dict[i])-1):
@@ -99,5 +99,8 @@ for i in range(10):
             else:
                 data['data'][r][i] = 1
 
-
+data.get('description', None)
+f = open(dataset_name + ".discr.arff","w")
+arff.dump(data,f)
+f.close()
 
