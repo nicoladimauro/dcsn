@@ -23,37 +23,16 @@ class StratifiedKFold():
         (A,) = np.where(X[:, l_repr] == 1)
         (B,) = np.where(X[:, l_repr] == 0)
 
-        print(l_repr,A,B)
+        folds_train = [ None for i in range(n_folds)] 
+        folds_test = [ None for i in range(n_folds)] 
 
-        folds = [ [] for i in range(n_folds)] 
+        for k in range(n_folds):
+            folds_train[k] = [x for i,x in enumerate(A) if i % n_folds != k] + \
+                             [x for i,x in enumerate(B) if i % n_folds != k]
+            folds_test[k] = [x for i,x in enumerate(A) if i % n_folds == k] + \
+                            [x for i,x in enumerate(B) if i % n_folds == k]
 
-        n_A = int(len(A) / n_folds)
-        if n_A == 0:
-            n_A = 1
-        
+        self.training_folds = np.array(folds_train)
+        self.testing_folds = np.array(folds_test)
 
-        n_B = int(len(B) / n_folds)
-        if n_B == 0:
-            n_B = 1
-
-        f = 0
-        for i in range(len(A)):
-            folds[f].append(A[i])
-            if i % n_A == 0:
-                f += 1
-            print (folds, i , f)
-                
-        f = 0
-        for i in range(len(B)):
-            folds[f].append(B[i])
-            if i % n_B == 0:
-                f += 1
-            print (folds, i , f)
-
-        print (folds)
-        
-
-        
-A = np.random.randint(2,size=(10,10))
-print(A)
-C = StratifiedKFold(A, 3)
+       
