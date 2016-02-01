@@ -8,7 +8,7 @@ import random
 
 import sklearn.mixture
 
-from nodes import Node, OrNode, SumNode, AndNode, TreeNode, is_or_node, is_and_node, is_sum_node, is_tree_node
+from nodes import Node, OrNode, SumNode, AndNode, TreeNode, OptionNode, is_or_node, is_and_node, is_sum_node, is_tree_node, is_option_node
 from logr import logr
 from cltree import Cltree
 
@@ -170,7 +170,7 @@ class Csn:
     def show(self):
         """ WRITEME """
         print ("Learned Cut Set Network")
-        self._showl(0)
+#        self._showl(0)
         print("OR nodes:", Csn._or_nodes)
         print("SUM nodes:", Csn._sum_nodes)
         print("And nodes:", Csn._and_nodes)
@@ -550,7 +550,20 @@ class Csn:
         else:
             selected = cutting_features
 
-
+        PQ = []
+        ll = 0.0
+        CL_l = None 
+        CL_r = None
+        feature = None
+        left_weight = 0.0
+        right_weight = 0.0
+        left_data = None
+        right_data = None
+        l_ll = 0.0 
+        r_ll = 0.0
+        left_sample_weight = 0.0
+        right_sample_weight = 0.0
+            
         for feature in selected:
             condition = self.data[:,feature]==0
             new_features = np.ones(self.data.shape[1], dtype=bool)
@@ -592,6 +605,21 @@ class Csn:
             else:
                 ll = -np.inf
 
+            if len(PQ) == 0:
+                PQ.append((ll, CL_l, CL_r, feature, left_weight, right_weight, 
+                           left_data, right_data, l_ll, r_ll, 
+                           left_sample_weight, right_sample_weight))
+            else:
+                for e in range(len(PQ)):
+                    if PQ[e][0] < ll:
+                        PQ.insert(e, (ll, CL_l, CL_r, feature, left_weight, right_weight, 
+                                      left_data, right_data, l_ll, r_ll, 
+                                      left_sample_weight, right_sample_weight))
+                        break
+                if len(PQ)>3:
+                    PQ.pop()
+
+
             if ll>bestlik:
 
                 bestlik = ll
@@ -619,7 +647,68 @@ class Csn:
 
         if (found==True and gain > self.min_gain) or (gain_c > gain and gain_c > self.min_gain):
 
-            if (gain > gain_c):
+            if self.depth < 4 and len(PQ)>1:
+                self.node = OptionNode()
+
+                print("   - Adding an option node")
+
+#                Csn._sum_nodes = Csn._sum_nodes + 1
+
+                instances = self.data.shape[0]
+
+                sum_w = 0.0
+                for i in range(len(PQ)):
+                    sum_w += np.exp(PQ[i][0])
+#                    sum_w += PQ[i][0]
+                for i in range(len(PQ)):
+                    self.node.weights.append(np.exp(PQ[i][0])/sum_w)
+#                    self.node.weights.append(PQ[i][0]/sum_w)
+#                    self.node.weights.append(1/len(PQ))
+                    self.node.children.append(OrNode())
+
+                    (pq_ll, pq_CL_l, pq_CL_r, pq_feature, pq_left_weight, pq_right_weight, 
+                     pq_left_data, pq_right_data, pq_l_ll, pq_r_ll, 
+                     pq_left_sample_weight, pq_right_sample_weight) = PQ[i]
+
+                    self.node.children[i].or_feature_scope = self.scope[pq_feature]
+                    self.node.children[i].or_feature = pq_feature
+
+                    instances = self.data.shape[0]
+
+                    self.node.children[i].left_weight = pq_left_weight
+                    self.node.children[i].right_weight = pq_right_weight
+
+                    self.node.children[i].left_child = Csn(data=pq_left_data, 
+                                                           clt=pq_CL_l, ll=pq_l_ll, 
+                                                           min_instances=self.min_instances, 
+                                                           min_features=self.min_features, 
+                                                           alpha=self.alpha*pq_left_weight, 
+                                                           d=self.d, random_forest=self.random_forest,
+                                                           leaf_vars = self.leaf_vars,
+                                                           m_priors = self.m_priors, j_priors = self.j_priors,
+                                                           n_original_samples = self.n_original_samples,
+                                                           and_leaves=self.and_leaves, 
+                                                           and_inners=self.and_inners,
+                                                           min_gain = self.min_gain, 
+                                                           depth=self.depth+1,
+                                                           sample_weight = pq_left_sample_weight)
+                    self.node.children[i].right_child = Csn(data=pq_right_data, 
+                                                            clt=pq_CL_r, ll=pq_r_ll, 
+                                                            min_instances=self.min_instances, 
+                                                            min_features=self.min_features, 
+                                                            alpha=self.alpha*pq_right_weight, d=self.d, 
+                                                            random_forest=self.random_forest,
+                                                            leaf_vars = self.leaf_vars,
+                                                            m_priors = self.m_priors, j_priors = self.j_priors,
+                                                            n_original_samples = self.n_original_samples,
+                                                            and_leaves=self.and_leaves, 
+                                                            and_inners=self.and_inners,
+                                                            min_gain = self.min_gain, 
+                                                            depth=self.depth+1,
+                                                            sample_weight = pq_right_sample_weight)
+              
+
+            elif (gain > gain_c):
             
                 self.node = OrNode()
                 self.node.or_feature_scope = self.scope[best_feature_cut]

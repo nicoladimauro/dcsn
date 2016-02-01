@@ -48,7 +48,6 @@ class LAIMdiscretize(object):
         XY = np.array(data['data'])
         n_attributes = XY.shape[1]
 
-
         # put the labels at the end
         if self.beginning_labels == True:
             indexing = np.array([i for i in range(n_attributes - self.n_labels, n_attributes)] + [i for i in range(n_attributes - self.n_labels)])
@@ -64,11 +63,7 @@ class LAIMdiscretize(object):
                 print("Attribute", attr)
                 raise BadLabelAttribute()
 
-        #check for categorical attributes
-        for (attr, domain) in data['attributes']:
-            if isinstance(domain, list) and len(domain)>2:
-                print("")
-#                raise CategoricalAttribute()
+        # NOTE: all the attributes are supposed to be numeric, real or categorical with numeric values
 
         print("Discretizing", XY.shape[0], "instances, ", n_attributes - self.n_labels, "attributes, ", self.n_labels, "labels")
 
@@ -76,25 +71,29 @@ class LAIMdiscretize(object):
         discr_intervals = {}
         for i in range(n_attributes - self.n_labels):
             # check for numeric attribute
-            if data['attributes'][i][1] == 'NUMERIC' or data['attributes'][i][1] == 'REAL':
-                print("attribute", i, len(unique_dict[i]))
+            if data['attributes'][i][1] == 'NUMERIC' or data['attributes'][i][1] == 'REAL' \
+               or isinstance(data['attributes'][i][1], list):
+
+                print("attribute", i, len(unique_dict[i]), end=" ")
                 max_LAIM = 0.0
                 best_cut = 0.0
                 for j in range(len(unique_dict[i])-1):
                     midpoint = (unique_dict[i][j+1] + unique_dict[i][j]) / 2
-                    LAIM_value = self._compute_LAIM(unique_dict[i][0], unique_dict[i][-1], midpoint, XY, self.n_labels, i)
+                    LAIM_value = self._compute_LAIM(unique_dict[i][0], unique_dict[i][-1], \
+                                                    midpoint, XY, self.n_labels, i)
                     if LAIM_value > max_LAIM:
                         best_cut = midpoint
                         max_LAIM = LAIM_value
+                print ("[",unique_dict[i][0],",",best_cut,"] [",best_cut,",",unique_dict[i][-1],"]")
                 (attr_name, val) = data['attributes'][i]
                 data['attributes'][i] = (attr_name, ['0', '1'])
                 for r in range(XY.shape[0]):
                     if data['data'][r][i] <= best_cut:
                         data['data'][r][i] = 0
-                else:
-                    data['data'][r][i] = 1
+                    else:
+                        data['data'][r][i] = 1
 
-        f = open(dataset_name + ".discr.arff","w")
+        f = open(self.dataset_name + ".discr.arff","w")
         arff.dump(data,f)
         f.close()
 

@@ -60,6 +60,22 @@ class OrNode(Node):
         return (mpe_state, mpe_log_proba)
 
 
+class OptionNode(Node):
+    _node_type = "option"
+
+    def __init__(self):
+        Node.__init__(self)
+        self.children = []
+        self.weights = []
+
+    def score_sample_log_proba(self, x):
+        """ WRITEME """
+        prob = 0.0
+        for s in range(len(self.children)):
+            prob = prob + (self.weights[s] * np.exp(self.children[s].score_sample_log_proba(x)))
+        return logr(prob)
+
+
 class SumNode(Node):
     """Class for sum nodes
     """
@@ -130,6 +146,10 @@ class TreeNode(Node):
 ###############################################################################
 
 def is_or_node(node):
+    """Returns True if the given node is a or node."""
+    return getattr(node, "_node_type", None) == "or"
+
+def is_option_node(node):
     """Returns True if the given node is a or node."""
     return getattr(node, "_node_type", None) == "or"
 

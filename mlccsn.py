@@ -27,7 +27,6 @@ def load_train_valid_test_arff(dataset,
                              sep=',',
                              type='int',
                              suffixes=['.train.arff',
-                                       '.valid.arff',
                                        '.test.arff']):
 
 
@@ -104,6 +103,9 @@ parser.add_argument('-v', '--verbose', type=int, nargs='?',
                     default=1,
                     help='Verbosity level')
 
+parser.add_argument('-l',  action='store_true', default=False,
+                    help='Labels as leafs.')
+
 
 #
 # parsing the args
@@ -140,7 +142,8 @@ sum_nodes = args.sum
 #
 logging.info('Loading datasets: %s', args.dataset)
 (dataset_name,) = args.dataset
-train, valid, test = load_train_valid_test_arff(dataset_name)
+#train, valid, test = load_train_valid_test_arff(dataset_name)
+train, test = load_train_valid_test_arff(dataset_name)
 n_instances = train.shape[0]
 n_test_instances = test.shape[0]
 
@@ -196,6 +199,11 @@ with open(out_log_path, 'w') as out_log:
                 ######################################################################
                 _sample_weight = None
 
+                if args.l:
+                    l_vars = [i for i in range(train.shape[1]-n_labels,train.shape[1])]
+                else:
+                    l_vars = []
+
                 learn_start_t = perf_counter()
                 C = Csnm(max_components=max_components, 
                          training_data=train, 
@@ -203,7 +211,7 @@ with open(out_log_path, 'w') as out_log:
                          min_instances=min_instances, 
                          min_features=min_features, 
                          alpha=alpha, random_forest=rf,
-                         leaf_vars = [],
+                         leaf_vars = l_vars,
                          and_leaves = and_leaf,
                          and_inners = and_node,sum_nodes = sum_nodes)
 
@@ -238,40 +246,21 @@ with open(out_log_path, 'w') as out_log:
                     print("p_F1_instances",mlcmetrics.p_F1_instances(Y, Y_pred))
                     print("p_F1_micro",mlcmetrics.p_F1_micro(Y, Y_pred))
 
+                    Y_pred = mlcmetrics.compute_predictions(C, test, n_labels)
+                    Y = mlcmetrics.extract_true_labels(test, n_labels)
+                    print("p_exact_match", mlcmetrics.p_exact_match(Y, Y_pred))
+                    print("l_hamming_loss", mlcmetrics.l_hamming_loss(Y, Y_pred))
+                    print("p_accuracy", mlcmetrics.p_accuracy(Y, Y_pred))
+                    print("p_precision_instances",mlcmetrics.p_precision_instances(Y, Y_pred))
+                    print("p_precision_macro",mlcmetrics.p_precision_macro(Y, Y_pred))
+                    print("p_precision_micro",mlcmetrics.p_precision_micro(Y, Y_pred))
+                    print("p_recall_instances",mlcmetrics.p_recall_instances(Y, Y_pred))
+                    print("p_recall_macro",mlcmetrics.p_recall_macro(Y, Y_pred))
+                    print("p_recall_micro",mlcmetrics.p_recall_micro(Y, Y_pred))
+                    print("p_F1_instances",mlcmetrics.p_F1_instances(Y, Y_pred))
+                    print("p_F1_micro",mlcmetrics.p_F1_micro(Y, Y_pred))
 
-                    out_filename = out_path + '/c' + str(c) +'train.lls'
-                    logging.info('Evaluating on training set')
-                    train_avg_ll = C.score_samples(train, c, out_filename)
 
-                    #
-                    # Compute LL on validation set
-                    out_filename = out_path + '/c' + str(c) +'valid.lls'
-                    logging.info('Evaluating on validation set')
-                    valid_avg_ll = C.score_samples(valid, c, out_filename)
-
-                    #
-                    # Compute LL on test set
-                    out_filename = out_path + '/c' + str(c) +'test.lls'
-                    logging.info('Evaluating on test set')
-                    test_avg_ll = C.score_samples(test, c, out_filename)
-
-                    #
-                    # updating best stats according to valid ll
-                    if valid_avg_ll > best_valid_avg_ll:
-                        best_valid_avg_ll = valid_avg_ll
-                        best_state['alpha'] = alpha
-                        best_state['m_inst'] = min_instances
-                        best_state['m_feat'] = min_features
-                        best_state['time'] = learning_time
-                        best_state['train_ll'] = train_avg_ll
-                        best_state['valid_ll'] = valid_avg_ll
-                        best_state['test_ll'] = test_avg_ll
-                        shutil.copy2(out_path + '/c' + str(c) +'train.lls',out_path+'/besttrain.lls')
-                        shutil.copy2(out_path + '/c' + str(c) +'test.lls',out_path+'/besttest.lls')
-                        shutil.copy2(out_path + '/c' + str(c) +'valid.lls',out_path+'/bestvalid.lls')
-                    os.remove(out_path + '/c' + str(c) +'train.lls')
-                    os.remove(out_path + '/c' + str(c) +'test.lls')
-                    os.remove(out_path + '/c' + str(c) +'valid.lls')
 
                     or_nodes = sum(C.or_nodes[:c])/c
                     n_sum_nodes = sum(C.n_sum_nodes[:c])/c
