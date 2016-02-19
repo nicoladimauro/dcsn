@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
-from csnm import Csnm
+from mlcsn import mlcsn
 import numpy as np
 import argparse
 import shutil
 
-import arff
+import sklearn.metrics
 
 try:
     from time import perf_counter
@@ -18,25 +18,10 @@ import datetime
 import os
 import logging
 import random
-import mlcmetrics
-
-DATA_PATH = 'data/'
-
-def load_train_valid_test_arff(dataset,
-                             path=DATA_PATH,
-                             sep=',',
-                             type='int',
-                             suffixes=['.train.arff',
-                                       '.test.arff']):
-
-
-    datasets = []
-    files = [path + dataset + ext for ext in suffixes]
-    for file in files:
-        data = arff.load(open(file, 'r'),encode_nominal=True)
-        datasets.append(np.array(data['data']).astype(type))
-    return datasets
-
+import sklearn.metrics
+from dataset import Dataset
+import arff
+from tabulate import tabulate
 
 def stats_format(stats_list, separator, digits=5):
     formatted = []
@@ -106,6 +91,10 @@ parser.add_argument('-v', '--verbose', type=int, nargs='?',
 parser.add_argument('-l',  action='store_true', default=False,
                     help='Labels as leafs.')
 
+parser.add_argument('-f', type=int, nargs='?',
+                    default=5,
+                    help='Number of folds for the dataset')
+
 
 #
 # parsing the args
@@ -142,10 +131,7 @@ sum_nodes = args.sum
 #
 logging.info('Loading datasets: %s', args.dataset)
 (dataset_name,) = args.dataset
-#train, valid, test = load_train_valid_test_arff(dataset_name)
-train, test = load_train_valid_test_arff(dataset_name)
-n_instances = train.shape[0]
-n_test_instances = test.shape[0]
+
 
 #
 # Opening the file for test prediction
@@ -160,17 +146,21 @@ out_log_path = out_path + '/exp.log'
 if not os.path.exists(os.path.dirname(out_log_path)):
     os.makedirs(os.path.dirname(out_log_path))
 
-best_valid_avg_ll = -np.inf
 best_state = {}
-
-preamble = ("""components,alpha,minst,mfeat,or_nodes,sum_nodes,and_nodes,leaf_nodes,or_edges,clt_edges,cltrees,clforests,depth,mdepth,time,""" +
+preamble = ("""alpha,minst,mfeat,or_nodes,sum_nodes,and_nodes,leaf_nodes,or_edges,clt_edges,cltrees,clforests,depth,mdepth,time,""" +
             """train_ll,valid_ll,test_ll\n""")
-
-max_components = max(n_components)
 
 np.random.seed(1)
 
+
+
+#train = Dataset.load_arff("./data/"+dataset_name, 6, endian = "big", input_feature_type = 'int', encode_nominal = True)
+#n_instances = train.shape[0]
+#n_test_instances = test.shape[0]
+
 with open(out_log_path, 'w') as out_log:
+
+
 
     out_log.write("parameters:\n{0}\n\n".format(args))
     out_log.write(preamble)
@@ -181,104 +171,83 @@ with open(out_log_path, 'w') as out_log:
         for min_instances in m_instances:
             for min_features in m_features:
 
-                C = None
+                Accuracy = ['Accuracy']
+                Hamming_score = ['Hamming Score']
+                Exact_match = ['Exact match']
+                Learning_time = ['Learning time']
+                Testing_time = ['Testing time']
+                Headers = ['Metric']
 
-                # initing the random generators
-                seed = args.seed
-                numpy_rand_gen = numpy.random.RandomState(seed)
-                random.seed(seed)
+                for f in range(args.f):
+                
+                    C = None
 
-                ######################################################################
-                #                    _sample_weight = np.ones(train.shape[0])
-                #                    mean = 1
-                #                    variance = 0.1
-                #                    g_alpha = mean * mean / variance
-                #                    g_beta = mean / variance
-                #                    for i in range(train.shape[0]):
-                #                        _sample_weight[i] = random.gammavariate(g_alpha, 1/g_beta)
-                ######################################################################
-                _sample_weight = None
+                    # initing the random generators
+                    seed = args.seed
+                    numpy_rand_gen = numpy.random.RandomState(seed)
+                    random.seed(seed)
 
-                if args.l:
-                    l_vars = [i for i in range(train.shape[1]-n_labels,train.shape[1])]
-                else:
-                    l_vars = []
+                    _sample_weight = None
 
-                learn_start_t = perf_counter()
-                C = Csnm(max_components=max_components, 
-                         training_data=train, 
-                         sample_weight = _sample_weight,
-                         min_instances=min_instances, 
-                         min_features=min_features, 
-                         alpha=alpha, random_forest=rf,
-                         leaf_vars = l_vars,
-                         and_leaves = and_leaf,
-                         and_inners = and_node,sum_nodes = sum_nodes)
+                    train = Dataset.load_arff("./data/"+dataset_name+".f"+str(f)+".train.arff", n_labels, endian = "big", input_feature_type = 'int', encode_nominal = True)
+                    train_data = np.concatenate((train['X'],train['Y']), axis = 1)
 
-                C.fit()
-
-                learn_end_t = perf_counter()
-
-                learning_time = (learn_end_t - learn_start_t)
+                    if args.l:
+                        l_vars = [i+train['X'].shape[1] for i in range(train['Y'].shape[1])]
+                    else:
+                        l_vars = []
 
 
-                #
-                # gathering statistics
-    #            n_nodes = csn.n_nodes()
-    #            n_levels = csn.n_levels()
-    #            n_leaves = csn.n_leaves()
+                    learn_start_t = perf_counter()
+                    C = mlcsn(train_data, 
+                              sample_weight = _sample_weight,
+                              min_instances=min_instances, 
+                              min_features=min_features, 
+                              alpha=alpha, random_forest=rf,
+                              leaf_vars = l_vars,
+                              and_leaves = and_leaf,
+                              and_inners = and_node,
+                              sum_nodes = sum_nodes)
 
-                for c in n_components:
-                    #
-                    # Compute LL on training set
+                    C.fit()
+                    learn_end_t = perf_counter()
+
+                    learning_time = (learn_end_t - learn_start_t)
+
+
+                    test_data = Dataset.load_arff("./data/"+dataset_name+".f"+str(f)+".test.arff", n_labels, endian = "big", input_feature_type = 'int', encode_nominal = True)
+                    test_start_t = perf_counter()
+                    Y_pred = C.compute_predictions(test_data['X'], n_labels)
+                    test_end_t = perf_counter()
+                    testing_time = (test_end_t - test_start_t)
+
+                    for i in range(Y_pred.shape[0]):
+                        print(test_data['Y'][i], Y_pred[i])
+
+                    Accuracy.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y_pred))
+                    Hamming_score.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y_pred))
+                    Exact_match.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Y_pred))
+                    Learning_time.append(learning_time)
+                    Testing_time.append(testing_time)
+                    Headers.append("Fold "+ str(f))
+    
                     
-                    Y_pred = mlcmetrics.compute_predictions(C, train, n_labels)
-                    Y = mlcmetrics.extract_true_labels(train, n_labels)
-                    print("p_exact_match", mlcmetrics.p_exact_match(Y, Y_pred))
-                    print("l_hamming_loss", mlcmetrics.l_hamming_loss(Y, Y_pred))
-                    print("p_accuracy", mlcmetrics.p_accuracy(Y, Y_pred))
-                    print("p_precision_instances",mlcmetrics.p_precision_instances(Y, Y_pred))
-                    print("p_precision_macro",mlcmetrics.p_precision_macro(Y, Y_pred))
-                    print("p_precision_micro",mlcmetrics.p_precision_micro(Y, Y_pred))
-                    print("p_recall_instances",mlcmetrics.p_recall_instances(Y, Y_pred))
-                    print("p_recall_macro",mlcmetrics.p_recall_macro(Y, Y_pred))
-                    print("p_recall_micro",mlcmetrics.p_recall_micro(Y, Y_pred))
-                    print("p_F1_instances",mlcmetrics.p_F1_instances(Y, Y_pred))
-                    print("p_F1_micro",mlcmetrics.p_F1_micro(Y, Y_pred))
-
-                    Y_pred = mlcmetrics.compute_predictions(C, test, n_labels)
-                    Y = mlcmetrics.extract_true_labels(test, n_labels)
-                    print("p_exact_match", mlcmetrics.p_exact_match(Y, Y_pred))
-                    print("l_hamming_loss", mlcmetrics.l_hamming_loss(Y, Y_pred))
-                    print("p_accuracy", mlcmetrics.p_accuracy(Y, Y_pred))
-                    print("p_precision_instances",mlcmetrics.p_precision_instances(Y, Y_pred))
-                    print("p_precision_macro",mlcmetrics.p_precision_macro(Y, Y_pred))
-                    print("p_precision_micro",mlcmetrics.p_precision_micro(Y, Y_pred))
-                    print("p_recall_instances",mlcmetrics.p_recall_instances(Y, Y_pred))
-                    print("p_recall_macro",mlcmetrics.p_recall_macro(Y, Y_pred))
-                    print("p_recall_micro",mlcmetrics.p_recall_micro(Y, Y_pred))
-                    print("p_F1_instances",mlcmetrics.p_F1_instances(Y, Y_pred))
-                    print("p_F1_micro",mlcmetrics.p_F1_micro(Y, Y_pred))
+                    or_nodes = C.or_nodes
+                    n_sum_nodes = C.n_sum_nodes
+                    and_nodes = C.and_nodes
+                    leaf_nodes = C.leaf_nodes
+                    or_edges = C.or_edges
+                    clt_edges = C.clt_edges
+                    cltrees = C.cltrees
+                    clforests = C.clforests
+                    depth = C.depth
+                    mdepth = C.mdepth
 
 
-
-                    or_nodes = sum(C.or_nodes[:c])/c
-                    n_sum_nodes = sum(C.n_sum_nodes[:c])/c
-                    and_nodes = sum(C.and_nodes[:c])/c
-                    leaf_nodes = sum(C.leaf_nodes[:c])/c
-                    or_edges = sum(C.or_edges[:c])/c
-                    clt_edges = sum(C.clt_edges[:c])/c
-                    cltrees = sum(C.cltrees[:c])/c
-                    clforests = sum(C.clforests[:c])/c
-                    depth = sum(C.depth[:c])/c
-                    mdepth = sum(C.mdepth[:c])/c
-
-
-
+                    """
                     #
                     # writing to file a line for the grid
-                    stats = stats_format([c,
-                                          alpha,
+                    stats = stats_format([alpha,
                                           min_instances,
                                           min_features,
                                           or_nodes,
@@ -298,7 +267,16 @@ with open(out_log_path, 'w') as out_log:
                                          ',',
                                          digits=5)
                     out_log.write(stats + '\n')
+                    """
                     out_log.flush()
+
+                    print(tabulate([Accuracy, Hamming_score, Exact_match, Learning_time, Testing_time], 
+                                   headers=Headers, tablefmt='orgtbl'))
+
+                print('\nAccuracy (mean/std)      :', np.mean(np.array(Accuracy[1:])),"/",np.std(np.array(Accuracy[1:])))
+                print('Hamming score (mean/std) :', np.mean(np.array(Hamming_score[1:])), "/", np.std(np.array(Hamming_score[1:])))
+                print('Exact match (mean/std)   :', np.mean(np.array(Exact_match[1:])), "/", np.std(np.array(Exact_match[1:])))
+                print('Time (mean/std)          :', np.mean(np.array(Time[1:])), "/", np.std(np.array(Time[1:])))
 
     #
     # writing as last line the best params
