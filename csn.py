@@ -224,9 +224,7 @@ class Csn:
         maxprob = -np.inf
         maxstate = []
 
-        worlds = list(itertools.product([0, 1], repeat=self.n))
-
-        for w in worlds:
+        for w in (itertools.product([0, 1], repeat=self.n)):
             ver = True
             for var, state in evidence.items():
                 if w[var] != state:
@@ -238,7 +236,7 @@ class Csn:
                 if prob > maxprob:
                     maxprob = prob
                     maxstate = w
-
+                    print(maxprob, maxstate)
         return (maxstate, maxprob)
 
 
@@ -647,6 +645,7 @@ class Csn:
 
         if (found==True and gain > self.min_gain) or (gain_c > gain and gain_c > self.min_gain):
 
+            PQ = []
             if self.depth < 4 and len(PQ)>1:
                 self.node = OptionNode()
 
