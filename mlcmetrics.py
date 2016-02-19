@@ -11,37 +11,6 @@ import numpy as np
 def extract_true_labels(X, n_labels):
     return X[:,-n_labels:]
 
-def compute_predictions(C, X, n_labels):
-    predictions = np.zeros((X.shape[0],n_labels),dtype=np.int)
-    k = 0
-    for x in X:
-        evidence = {}
-        for i in range(len(x)-n_labels):
-            evidence[i]=x[i]
-        (state, prob) = C.mpe(evidence = evidence)
-        sum = 0
-        for i in range(len(x)-n_labels,len(x)):
-            sum += state[i]
-        if sum == 0:
-            # avoiding empty predictions
-            max_state = None
-            max_prob = -np.inf
-            for i in range(len(x)-n_labels, len(x)):
-                evidence[i] = 1
-                if i > (len(x) - n_labels):
-                    del evidence[i-1]
-                (state1, prob1) = C.mpe(evidence = evidence)
-                if (prob1 > max_prob):
-                    max_prob = prob1
-                    max_state = state1
-            state = max_state
-            prob = max_prob
-        y = 0
-        for i in range(len(x)-n_labels,len(x)):
-            predictions[k,y]=state[i]
-            y += 1
-        k += 1
-    return predictions
     
 """
  Exact Match, i.e., 1 - [0/1 Loss]
