@@ -3,9 +3,9 @@ import random
 
 class StratifiedKFold():
     
-    def __init__(self, X, n_labels, n_folds=5, shuffle=False, seed=0):
-        self.X = X
-        self.n_labels = n_labels
+    def __init__(self, data, n_folds=5, shuffle=False, seed=0):
+        self.data = data
+        self.n_labels = self.data['Y'].shape[1]
         self.n_folds = n_folds
         self.shuffle = shuffle
         self.seed = seed
@@ -17,21 +17,23 @@ class StratifiedKFold():
         if self.shuffle == True:
             np.random.shuffle(self.X)
 
-        n_attributes = self.X.shape[1] - self.n_labels
+        n_attributes = self.data['X'].shape[1]
         # find the less representative label
-        l_min = np.sum(self.X[:,n_attributes])
-        l_repr = n_attributes
-        for i in range(n_attributes + 1, self.X.shape[1]):
-            l_sum = np.sum(self.X[:,i])
+        l_min = np.sum(self.data['Y'][:,0])
+        l_repr = 0
+        for i in range(1, self.n_labels):
+            l_sum = np.sum(self.data['Y'][:,i])
             if l_sum < l_min:
                 l_min = l_sum
                 l_repr = i
-                
-        (A,) = np.where(self.X[:, l_repr] == 1)
-        (B,) = np.where(self.X[:, l_repr] == 0)
+
+               
+        (A,) = np.where(self.data['Y'][:, l_repr] == 1)
+        (B,) = np.where(self.data['Y'][:, l_repr] == 0)
 
         folds_train = [ None for i in range(self.n_folds)] 
         folds_test = [ None for i in range(self.n_folds)] 
+
 
         for k in range(self.n_folds):
             folds_train[k] = [x for i,x in enumerate(A) if i % self.n_folds != k] + \
