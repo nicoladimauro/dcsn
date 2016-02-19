@@ -17,7 +17,7 @@ from utils import check_is_fitted
 
 import itertools
 
-from time import perf_counter
+from time import perf_counter, process_time
 
 ###############################################################################
 
@@ -93,6 +93,47 @@ def compute_log_factors(tree,
     return log_factors
 
 ###############################################################################
+@numba.njit
+def comp(X, C, r, c):
+    for i in range(c):
+        for k in range(r):
+            if X[k,i]:
+                for j in range(i,c):
+                    if X[k,j]:
+                        C[i,j] += 1
+    for i in range(1,c):
+        for j in range(i):
+            C[i,j] = C[j,i]
+
+
+@numba.jit
+def comp1(Ys, n, C):
+    i = 0
+    start = 0
+    prec = -1
+    for i in range(n):
+        if Ys[i] < prec:
+            start = 0
+        for j in range(start+1):
+            C[Ys[i-j],Ys[i]] += 1
+            print(i,j,start,Ys[i-j],Ys[i])
+        start += 1
+        prec = Ys[i]
+
+@numba.njit
+def comp2(X, C, NZ, r, c):
+    for k in range(r):
+        non_zeros = 0
+        for i in range(c):
+            if X[k,i]:
+                NZ[non_zeros]=i
+                non_zeros += 1
+                for j in range(non_zeros):
+                    v = NZ[j]
+                    C[v,i] += 1
+    for i in range(1,c):
+        for j in range(i):
+            C[i,j] = C[j,i]
 
 class Cltree:
 
@@ -194,6 +235,19 @@ class Cltree:
         log_probs = np.zeros((self.n_features,2))
         log_j_probs = np.zeros((self.n_features,self.n_features,2,2))
 
+        """
+        C1 = np.zeros((X.shape[1], X.shape[1]))
+        comp(X, C1, X.shape[0], X.shape[1])
+        """
+        
+
+        C = np.zeros((X.shape[1], X.shape[1]))
+        NZ = np.zeros(X.shape[1],dtype='int')
+
+        comp2(X, C, NZ, X.shape[0], X.shape[1])
+        
+
+        """
         sparse_cooccurences = sparse.csr_matrix(X)
 
         if sample_weight is None:
@@ -202,6 +256,9 @@ class Cltree:
         else:
             weighted_X = np.einsum('ij,i->ij', X, sample_weight)
             cooccurences = sparse_cooccurences.T.dot(weighted_X)
+        """
+
+        cooccurences = C
         p = cooccurences.diagonal() 
 
 
