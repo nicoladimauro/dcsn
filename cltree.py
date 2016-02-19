@@ -17,6 +17,8 @@ from utils import check_is_fitted
 
 import itertools
 
+from time import perf_counter
+
 ###############################################################################
 
 @numba.njit
@@ -29,8 +31,10 @@ def cMI_numba(n_features,
             for v0 in range(2):
                 for v1 in range(2):
                     MI[i,j] = MI[i,j] + np.exp(log_j_probs[i,j,v0,v1])*( log_j_probs[i,j,v0,v1] - log_probs[i,v0] - log_probs[j,v1])
-                    MI[j,i] = MI[i,j]
+            MI[j,i] = MI[i,j]
     return MI
+
+
 
 @numba.njit
 def log_probs_numba(n_features, 
@@ -41,7 +45,6 @@ def log_probs_numba(n_features,
                     priors, 
                     log_probs, 
                     log_j_probs, 
-                    log_c_probs, 
                     cond, 
                     p):
     for i in range(n_features):
@@ -52,32 +55,27 @@ def log_probs_numba(n_features,
 
     for i in range(n_features):
         for j in range(n_features):
-            if i != j:
-                id_i = scope[i]
-                id_j = scope[j]
-                log_j_probs[i,j,1,1] = cond[i,j] 
-                log_j_probs[i,j,0,1] = cond[j,j] - cond[i,j] 
-                log_j_probs[i,j,1,0] = cond[i,i] - cond[i,j] 
-                log_j_probs[i,j,0,0] = n_samples - log_j_probs[i,j,1,1] - log_j_probs[i,j,0,1] - log_j_probs[i,j,1,0]
+            id_i = scope[i]
+            id_j = scope[j]
 
-                log_j_probs[i,j,1,1] = logr((log_j_probs[i,j,1,1] + alpha*priors[id_i,id_j,1,1]) / ( n_samples + alpha))
-                log_j_probs[i,j,0,1] = logr((log_j_probs[i,j,0,1] + alpha*priors[id_i,id_j,0,1]) / ( n_samples + alpha))
-                log_j_probs[i,j,1,0] = logr((log_j_probs[i,j,1,0] + alpha*priors[id_i,id_j,1,0]) / ( n_samples + alpha))
-                log_j_probs[i,j,0,0] = logr((log_j_probs[i,j,0,0] + alpha*priors[id_i,id_j,0,0]) / ( n_samples + alpha))
+            log_j_probs[i,j,1,1] = logr((cond[i,j] + alpha*priors[id_i,id_j,1,1]) / ( n_samples + alpha))
+            log_j_probs[i,j,0,1] = logr((cond[j,j] - cond[i,j] + alpha*priors[id_i,id_j,0,1]) / ( n_samples + alpha))
+            log_j_probs[i,j,1,0] = logr((cond[i,i] - cond[i,j] + alpha*priors[id_i,id_j,1,0]) / ( n_samples + alpha))
+            log_j_probs[i,j,0,0] = logr((n_samples - cond[j,j] - cond[i,i] + cond[i,j] + alpha*priors[id_i,id_j,0,0]) / ( n_samples + alpha))
 
-                log_c_probs[i,j,1,1] = log_j_probs[i,j,1,1] - log_probs[j,1]
-                log_c_probs[i,j,0,1] = log_j_probs[i,j,0,1] - log_probs[j,1]
-                log_c_probs[i,j,1,0] = log_j_probs[i,j,1,0] - log_probs[j,0]
-                log_c_probs[i,j,0,0] = log_j_probs[i,j,0,0] - log_probs[j,0]
+            log_j_probs[j,i,1,1] = log_j_probs[i,j,1,1]
+            log_j_probs[j,i,1,0] = log_j_probs[i,j,0,1]
+            log_j_probs[j,i,0,1] = log_j_probs[i,j,1,0]
+            log_j_probs[j,i,0,0] = log_j_probs[i,j,0,0]
 
-    return (log_probs, log_j_probs, log_c_probs)
+    return (log_probs, log_j_probs)
 
 
 @numba.njit
 def compute_log_factors(tree,
                         n_features,
                         log_probs,
-                        log_c_probs,
+                        log_j_probs,
                         log_factors):
 
     for feature in range(0,n_features):
@@ -90,7 +88,7 @@ def compute_log_factors(tree,
             parent = int(tree[feature])
             for feature_val in range(2):
                 for parent_val in range(2):
-                    log_factors[feature, feature_val, parent_val] = log_c_probs[feature, parent, feature_val, parent_val]
+                    log_factors[feature, feature_val, parent_val] = log_j_probs[feature,parent,feature_val, parent_val] - log_probs[parent, parent_val] 
 
     return log_factors
 
@@ -149,7 +147,7 @@ class Cltree:
             self.n_samples = np.sum(sample_weight)
 
 
-        (log_probs, log_j_probs, log_c_probs) = self.compute_log_probs(X, sample_weight, m_priors, j_priors)
+        (log_probs, log_j_probs) = self.compute_log_probs(X, sample_weight, m_priors, j_priors)
 
 
         MI = self.cMI(log_probs, log_j_probs)
@@ -188,13 +186,12 @@ class Cltree:
         self.num_edges = self.n_features - self.num_trees
         # computing the factored represetation
         self.log_factors = np.zeros((self.n_features, 2, 2))
-        self.log_factors = compute_log_factors(self.tree, self.n_features, log_probs, log_c_probs, self.log_factors)
+        self.log_factors = compute_log_factors(self.tree, self.n_features, log_probs, log_j_probs, self.log_factors)
 
 
     def compute_log_probs(self, X, sample_weight, m_priors, j_priors):
         """ WRITEME """
         log_probs = np.zeros((self.n_features,2))
-        log_c_probs = np.zeros((self.n_features,self.n_features,2,2))
         log_j_probs = np.zeros((self.n_features,self.n_features,2,2))
 
         sparse_cooccurences = sparse.csr_matrix(X)
@@ -207,6 +204,7 @@ class Cltree:
             cooccurences = sparse_cooccurences.T.dot(weighted_X)
         p = cooccurences.diagonal() 
 
+
         return log_probs_numba(self.n_features, 
                                self.scope, 
                                self.n_samples, 
@@ -215,14 +213,19 @@ class Cltree:
                                j_priors, 
                                log_probs, 
                                log_j_probs, 
-                               log_c_probs, 
                                cooccurences, 
                                p)
+
+
 
     def cMI(self, log_probs, log_j_probs):
         """ WRITEME """
         MI = np.zeros((self.n_features, self.n_features))
         return cMI_numba(self.n_features, log_probs, log_j_probs, MI)
+
+
+
+
 
     def score_samples_log_proba(self, X, sample_weight = None):
         """ WRITEME """
