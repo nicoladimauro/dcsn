@@ -17,7 +17,7 @@ from utils import check_is_fitted
 
 import itertools
 
-from time import perf_counter, process_time
+
 
 ###############################################################################
 
@@ -135,6 +135,7 @@ def comp2(X, C, NZ, r, c):
         for j in range(i):
             C[i,j] = C[j,i]
 
+
 class Cltree:
 
     def __init__(self):
@@ -230,6 +231,8 @@ class Cltree:
         self.log_factors = compute_log_factors(self.tree, self.n_features, log_probs, log_j_probs, self.log_factors)
 
 
+
+
     def compute_log_probs(self, X, sample_weight, m_priors, j_priors):
         """ WRITEME """
         log_probs = np.zeros((self.n_features,2))
@@ -272,6 +275,7 @@ class Cltree:
                                log_j_probs, 
                                cooccurences, 
                                p)
+
 
 
 

@@ -17,6 +17,8 @@ from scipy import optimize
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from time import perf_counter, process_time
+
 ###############################################################################
 
 class Csn:
@@ -114,9 +116,19 @@ class Csn:
             self.j_priors = j_priors
 
         if clt is None:
+            COC = [[] for i in range(data.shape[0])]
+            for r in range(data.shape[0]):
+                for f in range(data.shape[1]):
+                    if data[r,f]>0:
+                        COC[r].append(f)
+
+
             self.node.cltree = Cltree()
+
+            
             self.node.cltree.fit(data, self.m_priors, self.j_priors, alpha=self.alpha, 
                                  and_leaves=self.and_leaves, sample_weight=self.sample_weight)
+
             self.orig_ll = self.node.cltree.score_samples_log_proba(self.data, sample_weight=self.sample_weight)
             self.d = int(math.sqrt(self.data.shape[1]))
             sparsity = 0.0
