@@ -1,0 +1,32 @@
+dataset					bigendian				nlabels					instances				attributes
+
+Arts1500				False						26							7484						500
+birds						False						19							645							260							
+Business1500		False						30							11214						500
+CAL500					False						174							502							68
+emotions				False						6								593							72								
+flags						False						7								194							19
+Health1500			False						32							9205						500
+human3106				False						14							3106						440
+plant978				False						12							978							440	
+rcv1subset1500	False						101							6000						500
+rcv1subset2500	False						101							6000						500
+rcv1subset3500	False						101
+rcv1subset4500	False						101
+rcv1subset5500	False						101
+scene						False						6								2407						294
+yeast						False						14							2417						103
+
+
+modificato birds, per l'attributo location, anche flags
+
+usare matrici sparse
+
+
+comp
+{'test_ll': -30.048413787118474, 'train_ll': -29.18954713884788, 'time': 193.73287535400596, 'm_inst': 1000, 'valid_ll': -29.724692525410664, 'm_feat': 4, 'alpha': 1.0}
+comp2
+{'m_feat': 4, 'train_ll': -29.18954713884788, 'alpha': 1.0, 'time': 63.443181761016604, 'm_inst': 1000, 'valid_ll': -29.724692525410664, 'test_ll': -30.048413787118474}
+sparse
+{'alpha': 1.0, 'train_ll': -29.18954713884788, 'time': 104.9458240189997, 'm_inst': 1000, 'valid_ll': -29.724692525410664, 'm_feat': 4, 'test_ll': -30.048413787118474}
+ 
