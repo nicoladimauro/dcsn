@@ -14,7 +14,7 @@ except:
 
 import datetime
 from dataset import Dataset
-
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("dataset", type=str, nargs=1,
@@ -51,6 +51,11 @@ args = parser.parse_args()
 
 date_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 out_path = args.output + dataset_name + '_' + date_string
+out_log_path = out_path + '/exp.log'
+
+if not os.path.exists(os.path.dirname(out_log_path)):
+    os.makedirs(os.path.dirname(out_log_path))
+
 
 Accuracy = ['Accuracy']
 Hamming_score = ['Hamming Score']
@@ -58,42 +63,48 @@ Exact_match = ['Exact match']
 Time = ['Time']
 Headers = ['Metric']
 
-for f in range(args.f):
-    train_file_name = dataset_name + ".f" + str(f) + ".train.arff"
-    test_file_name = dataset_name + ".f" + str(f) + ".test.arff"
+with open(out_log_path, 'w') as out_log:
 
-    data = Dataset.load_arff("./data/"+test_file_name, args.c[0], endian = "big", input_feature_type = 'int', encode_nominal = True)
-
-    meka = Meka(args.mc, args.wc, meka_classpath=args.mp)
-    learn_start_t = perf_counter()
-    predictions, statistics = meka.run("./data/"+train_file_name, "./data/" + test_file_name)
-    learn_end_t = perf_counter()
-    learning_time = (learn_end_t - learn_start_t)
+    out_log.write("parameters:\n{0}\n\n".format(args))
+    out_log.flush()
 
 
-    print("Accuracy :     :", statistics['Accuracy'])
-    print('Hammingloss    :', statistics['Hammingloss'])
-    print('Exactmatch', statistics['Exactmatch'])
-    print('BuildTime', statistics['BuildTime'])
-    print('TestTime', statistics['TestTime'])
-    """
-    print("Accuracy score ", sklearn.metrics.jaccard_similarity_score(data['Y'], predictions))
-    print("Hamming loss ", sklearn.metrics.hamming_loss(data['Y'], predictions))
-    print("zeroOneLoss ", sklearn.metrics.zero_one_loss(data['Y'], predictions))
-    """
+    for f in range(args.f):
+        train_file_name = dataset_name + ".f" + str(f) + ".train.arff"
+        test_file_name = dataset_name + ".f" + str(f) + ".test.arff"
 
-    Accuracy.append(sklearn.metrics.jaccard_similarity_score(data['Y'], predictions))
-    Hamming_score.append(1-sklearn.metrics.hamming_loss(data['Y'], predictions))
-    Exact_match.append(1-sklearn.metrics.zero_one_loss(data['Y'], predictions))
-    Time.append(learning_time)
-    Headers.append("Fold "+ str(f))
+        data = Dataset.load_arff("./data/"+test_file_name, args.c[0], endian = "big", input_feature_type = 'int', encode_nominal = True)
+
+        meka = Meka(args.mc, args.wc, meka_classpath=args.mp)
+        learn_start_t = perf_counter()
+        predictions, statistics = meka.run("./data/"+train_file_name, "./data/" + test_file_name)
+        learn_end_t = perf_counter()
+        learning_time = (learn_end_t - learn_start_t)
+
+        print("Accuracy :     :", statistics['Accuracy'])
+        print('Hammingloss    :', statistics['Hammingloss'])
+        print('Exactmatch', statistics['Exactmatch'])
+        print('BuildTime', statistics['BuildTime'])
+        print('TestTime', statistics['TestTime'])
+
+        Accuracy.append(sklearn.metrics.jaccard_similarity_score(data['Y'], predictions))
+        Hamming_score.append(1-sklearn.metrics.hamming_loss(data['Y'], predictions))
+        Exact_match.append(1-sklearn.metrics.zero_one_loss(data['Y'], predictions))
+        Time.append(learning_time)
+        Headers.append("Fold "+ str(f))
+
+
+    out_log.write(tabulate([Accuracy, Hamming_score, Exact_match, Time], 
+                           headers=Headers, tablefmt='orgtbl'))
+
+    out_log.write('\n\nAccuracy (mean/std)      : %f / %f' % (np.mean(np.array(Accuracy[1:])),np.std(np.array(Accuracy[1:]))))
+    out_log.write('\nHamming score (mean/std)   : %f / %f' % (np.mean(np.array(Hamming_score[1:])), np.std(np.array(Hamming_score[1:]))))
+    out_log.write('\nExact match (mean/std)     : %f / %f' % (np.mean(np.array(Exact_match[1:])), np.std(np.array(Exact_match[1:]))))
+    out_log.write('\nTime (mean/std)            : %f / %f' % (np.mean(np.array(Time[1:])), np.std(np.array(Time[1:]))))
+    out_log.flush()
     
 
 print(tabulate([Accuracy, Hamming_score, Exact_match, Time], 
                headers=Headers, tablefmt='orgtbl'))
 
-print('\nAccuracy (mean/std)      :', np.mean(np.array(Accuracy[1:])),"/",np.std(np.array(Accuracy[1:])))
-print('Hamming score (mean/std) :', np.mean(np.array(Hamming_score[1:])), "/", np.std(np.array(Hamming_score[1:])))
-print('Exact match (mean/std)   :', np.mean(np.array(Exact_match[1:])), "/", np.std(np.array(Exact_match[1:])))
-print('Time (mean/std)          :', np.mean(np.array(Time[1:])), "/", np.std(np.array(Time[1:])))
 

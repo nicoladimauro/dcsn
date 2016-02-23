@@ -50,7 +50,7 @@ parser.add_argument('--seed', type=int, nargs='?',
                     help='Seed for the random generator')
 
 parser.add_argument('-o', '--output', type=str, nargs='?',
-                    default='./exp/csn/',
+                    default='./exp/mlcsn/',
                     help='Output dir path')
 
 parser.add_argument('-r', '--random', action='store_true', default=False,
@@ -146,10 +146,6 @@ out_log_path = out_path + '/exp.log'
 if not os.path.exists(os.path.dirname(out_log_path)):
     os.makedirs(os.path.dirname(out_log_path))
 
-best_state = {}
-preamble = ("""alpha,minst,mfeat,or_nodes,sum_nodes,and_nodes,leaf_nodes,or_edges,clt_edges,cltrees,clforests,depth,mdepth,time,""" +
-            """train_ll,valid_ll,test_ll\n""")
-
 np.random.seed(1)
 
 
@@ -163,7 +159,6 @@ with open(out_log_path, 'w') as out_log:
 
 
     out_log.write("parameters:\n{0}\n\n".format(args))
-    out_log.write(preamble)
     out_log.flush()
     #
     # looping over all parameters combinations
@@ -221,9 +216,6 @@ with open(out_log_path, 'w') as out_log:
                     test_end_t = perf_counter()
                     testing_time = (test_end_t - test_start_t)
 
-                    for i in range(Y_pred.shape[0]):
-                        print(test_data['Y'][i], Y_pred[i])
-
                     Accuracy.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y_pred))
                     Hamming_score.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y_pred))
                     Exact_match.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Y_pred))
@@ -268,20 +260,21 @@ with open(out_log_path, 'w') as out_log:
                                          digits=5)
                     out_log.write(stats + '\n')
                     """
-                    out_log.flush()
-
                     print(tabulate([Accuracy, Hamming_score, Exact_match, Learning_time, Testing_time], 
                                    headers=Headers, tablefmt='orgtbl'))
 
                 print('\nAccuracy (mean/std)      :', np.mean(np.array(Accuracy[1:])),"/",np.std(np.array(Accuracy[1:])))
                 print('Hamming score (mean/std) :', np.mean(np.array(Hamming_score[1:])), "/", np.std(np.array(Hamming_score[1:])))
                 print('Exact match (mean/std)   :', np.mean(np.array(Exact_match[1:])), "/", np.std(np.array(Exact_match[1:])))
-                print('Time (mean/std)          :', np.mean(np.array(Time[1:])), "/", np.std(np.array(Time[1:])))
+                print('Learning Time (mean/std)          :', np.mean(np.array(Learning_time[1:])), "/", np.std(np.array(Learning_time[1:])))
+                print('Testing Time (mean/std)          :', np.mean(np.array(Testing_time[1:])), "/", np.std(np.array(Testing_time[1:])))
 
-    #
-    # writing as last line the best params
-    out_log.write("{0}".format(best_state))
-    out_log.flush()
 
-logging.info('Grid search ended.')
-logging.info('Best params:\n\t%s', best_state)
+                out_log.write(tabulate([Accuracy, Hamming_score, Exact_match, Learning_time, Testing_time], 
+                                       headers=Headers, tablefmt='orgtbl'))
+                out_log.write('\n\nAccuracy (mean/std)      : %f / %f' % (np.mean(np.array(Accuracy[1:])),np.std(np.array(Accuracy[1:]))))
+                out_log.write('\nHamming score (mean/std) : %f / %f' % (np.mean(np.array(Hamming_score[1:])), np.std(np.array(Hamming_score[1:]))))
+                out_log.write('\nExact match (mean/std)   : %f / %f' % (np.mean(np.array(Exact_match[1:])), np.std(np.array(Exact_match[1:]))))
+                out_log.write('\nLearning Time (mean/std) : %f / %f' % (np.mean(np.array(Learning_time[1:])), np.std(np.array(Learning_time[1:]))))
+                out_log.write('\nTesting Time (mean/std)  : %f / %f' % (np.mean(np.array(Testing_time[1:])), np.std(np.array(Testing_time[1:]))))
+                out_log.flush()
