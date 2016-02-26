@@ -63,7 +63,7 @@ parser.add_argument('-k', type=int, nargs='+',
                     default=[1],
                     help='Number of components to use. If greater than 1, then a bagging approach is used.')
 
-parser.add_argument('-d', type=int, nargs='+',
+parser.add_argument('-d', type=float, nargs='+',
                     default=[10],
                     help='Min number of instances in a slice to split.')
 
@@ -193,6 +193,10 @@ with open(out_log_path, 'w') as out_log:
                         l_vars = []
 
 
+                    if min_instances <= 1:
+                        min_instances = int(train['X'].shape[0] * min_instances)
+                        print("Setting min_instances to ", min_instances)
+
                     learn_start_t = perf_counter()
                     C = mlcsn(train_data, 
                               sample_weight = _sample_weight,
@@ -216,12 +220,18 @@ with open(out_log_path, 'w') as out_log:
                     test_end_t = perf_counter()
                     testing_time = (test_end_t - test_start_t)
 
+#                    Y1_pred = C.compute_predictions1(test_data['X'], n_labels)
+
                     Accuracy.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y_pred))
                     Hamming_score.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y_pred))
                     Exact_match.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Y_pred))
                     Learning_time.append(learning_time)
                     Testing_time.append(testing_time)
                     Headers.append("Fold "+ str(f))
+
+#                    print("Accuracy ", sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y1_pred))
+#                    print("Hamming ",1-sklearn.metrics.hamming_loss(test_data['Y'], Y1_pred))
+#                    print("Exact ", 1-sklearn.metrics.zero_one_loss(test_data['Y'], Y1_pred))
     
                     
                     or_nodes = C.or_nodes
