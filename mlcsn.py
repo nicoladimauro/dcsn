@@ -1,6 +1,6 @@
 import numpy as np
 import csn as CSN
-
+import itertools
 
 ###############################################################################
 class mlcsn:
@@ -109,4 +109,39 @@ class mlcsn:
                 predictions[k,y]=state[i]
                 y += 1
             k += 1
+        return predictions
+
+    def compute_predictions1(self, X, n_labels):
+        predictions = np.zeros((X.shape[0],n_labels),dtype=np.int)
+        n_attributes = X.shape[1]
+        x1 = np.zeros(n_attributes + n_labels, dtype=np.int)
+
+        probs = np.zeros((n_labels,2))
+        
+        k = 0
+        for x in X:
+            for j in range(n_attributes):
+                x1[j] = x[j]
+            for l in range(n_labels):
+                prob0 = 0.0
+                prob1 = 0.0
+                # marginalize over all the other labels
+                for state in itertools.product([0, 1], repeat=n_labels-1):
+                    for j in range(n_labels):
+                        if j != l:
+                            if j<l:
+                                x1[n_attributes+j] = state[j]
+                            else:
+                                x1[n_attributes+j] = state[j-1]
+                    x1[n_attributes+l] = 0
+                    prob0 += np.exp(self.csn.score_sample_log_proba(x1))
+                    x1[n_attributes+l] = 1
+                    prob1 += np.exp(self.csn.score_sample_log_proba(x1))
+                probs[l,0] = prob0
+                probs[l,1] = prob1
+                predictions[k,l] = np.argmax(probs[l])
+            if np.sum(predictions[k]) == 0:
+                predictions[k, np.argmax(probs[:,1])] = 1
+            k += 1
+
         return predictions
