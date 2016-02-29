@@ -1,4 +1,4 @@
-python3 runmeka.py emotions -f 5 -c 6 -mc meka.classifiers.multilabel.BR -o ./exp/meka/nbbr/ > ./exp/meka/nbbr/emotions.log
+
 python3 runmeka.py Arts1500 -f 5 -c 26 -mc meka.classifiers.multilabel.BR -o ./exp/meka/nbbr/ > ./exp/meka/nbbr/arts.log
 python3 runmeka.py birds -c 19 -f 5 -mc meka.classifiers.multilabel.BR -o ./exp/meka/nbbr/ > ./exp/meka/nbbr/birds.log
 python3 runmeka.py Business1500 -c 30 -f 5 -mc meka.classifiers.multilabel.BR -o ./exp/meka/nbbr/ > ./exp/meka/nbbr/business.log
@@ -16,7 +16,7 @@ python3 runmeka.py rcv1subset5500 -c 101 -f 5 -mc meka.classifiers.multilabel.BR
 python3 runmeka.py scene -c 6 -f 5 -mc meka.classifiers.multilabel.BR -o ./exp/meka/nbbr/ > ./exp/meka/nbbr/scene.log
 python3 runmeka.py yeast -c 14 -f 5 -mc meka.classifiers.multilabel.BR -o ./exp/meka/nbbr/ > ./exp/meka/nbbr/yeast.log
 
-python3 runmeka.py emotions -c 6 -f 5 -mc meka.classifiers.multilabel.CC -o ./exp/meka/nbcc/ > ./exp/meka/nbcc/emotions.log
+
 python3 runmeka.py Arts1500 -c 26 -f 5 -mc meka.classifiers.multilabel.CC -o ./exp/meka/nbcc/ > ./exp/meka/nbcc/arts.log
 python3 runmeka.py birds -c 19 -f 5 -mc meka.classifiers.multilabel.CC -o ./exp/meka/nbcc/ > ./exp/meka/nbcc/birds.log
 python3 runmeka.py Business1500 -c 30 -f 5 -mc meka.classifiers.multilabel.CC -o ./exp/meka/nbcc/ > ./exp/meka/nbcc/business.log

@@ -199,8 +199,10 @@ with open(out_log_path, 'w') as out_log:
 
                     min_instances_ = min_instances
                     if min_instances <= 1:
-                        min_instances_ = int(train['X'].shape[0] * min_instances)
-                        print("Setting min_instances to ", min_instances_)
+                        min_instances_ = int(train['X'].shape[0] * min_instances)+1
+                        print("Setting min_instances to ", min_instances)
+                    else:
+                        min_instances_ = min_instances
 
                     learn_start_t = perf_counter()
                     C = mlcsn(train_data, 
