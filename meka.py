@@ -73,6 +73,8 @@ class Meka(object):
         pipes = subprocess.Popen(meka_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = pipes.communicate()
 
+
+#        print(output, error)
         if pipes.returncode != 0:
             raise Exception
         
