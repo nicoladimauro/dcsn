@@ -136,6 +136,7 @@ def comp2(X, C, NZ, r, c):
             C[i,j] = C[j,i]
 
 
+
 class Cltree:
 
     def __init__(self):
@@ -352,6 +353,7 @@ class Cltree:
         return prob
 
     def mpe(self, evidence = {}):
+
         messages = np.zeros((self.n_features, 2))
         states = [ [0,0] for i in range(self.n_features) ] 
         MAP = {}
@@ -374,7 +376,6 @@ class Cltree:
                             states[i][state_evidence_parent] = 1
                             messages[self.tree[i],state_evidence_parent]+= self.log_factors[i,1,state_evidence_parent]+messages[i,1]
                     else:
-
                         for parent in range(2):
                             if (self.log_factors[i,0,parent]+messages[i,0] > self.log_factors[i,1,parent]+messages[i,1]):
                                 states[i][parent] = 0
@@ -383,7 +384,6 @@ class Cltree:
                             else:
                                 states[i][parent] = 1
                                 messages[self.tree[i],parent]+= self.log_factors[i,1,parent]+messages[i,1]
-
         logprob = 0.0
         for i in self.df_order:
             if self.tree[i]==-1:
@@ -400,10 +400,32 @@ class Cltree:
             else:
                 MAP[self.scope[i]] = states[i][MAP[self.scope[self.tree[i]]]]
                 logprob += self.log_factors[i,MAP[self.scope[i]],MAP[self.scope[self.tree[i]]]]
-
-
         return (MAP, logprob)
-        
+
+
+    def infer(self, evidence = {}):
+
+        messages = np.zeros((self.n_features, 2))
+        logprob = 0.0
+        for i in self.post_order:
+            if i != 0:
+                state_evidence = evidence.get(self.scope[i])
+                if state_evidence != None:
+                    messages[self.tree[i],0] += self.log_factors[i,state_evidence,0] + messages[i,state_evidence]
+                    messages[self.tree[i],1] += self.log_factors[i,state_evidence,1] + messages[i,state_evidence]
+                else:
+                    # marginalization
+                    messages[self.tree[i], 0] += logr(np.exp(self.log_factors[i, 0, 0] + messages[i,0]) + np.exp(self.log_factors[i, 1, 0] + messages[i,1]))
+                    messages[self.tree[i], 1] += logr(np.exp(self.log_factors[i, 0, 1] + messages[i,0]) + np.exp(self.log_factors[i, 1, 1] + messages[i,1]))
+            else:
+                state_evidence = evidence.get(self.scope[i])
+                if state_evidence != None:
+                    logprob = self.log_factors[i,state_evidence,0] + messages[0,state_evidence]
+                else:
+                    # marginalization
+                    logprob = logr(np.exp(self.log_factors[i,0,0]+messages[0,0])+np.exp(self.log_factors[i,1,0]+messages[0,1]))
+        return logprob
+
 
     def naiveMPE(self, evidence = {}):
         maxprob = -np.inf

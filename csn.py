@@ -232,6 +232,10 @@ class Csn:
         """ WRITEME """
         return self.node.mpe(evidence)
 
+    def infer(self, evidence = {}):
+        """ WRITEME """
+        return self.node.infer(evidence)
+
     def naiveMPE(self, evidence = {}):
         maxprob = -np.inf
         maxstate = []

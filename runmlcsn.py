@@ -173,6 +173,11 @@ with open(out_log_path, 'w') as out_log:
                 Testing_time = ['Testing time']
                 Headers = ['Metric']
 
+                Accuracy1 = ['Accuracy']
+                Hamming_score1 = ['Hamming Score']
+                Exact_match1 = ['Exact match']
+
+
                 for f in range(args.f):
                 
                     C = None
@@ -192,15 +197,15 @@ with open(out_log_path, 'w') as out_log:
                     else:
                         l_vars = []
 
-
+                    min_instances_ = min_instances
                     if min_instances <= 1:
-                        min_instances = int(train['X'].shape[0] * min_instances)
-                        print("Setting min_instances to ", min_instances)
+                        min_instances_ = int(train['X'].shape[0] * min_instances)
+                        print("Setting min_instances to ", min_instances_)
 
                     learn_start_t = perf_counter()
                     C = mlcsn(train_data, 
                               sample_weight = _sample_weight,
-                              min_instances=min_instances, 
+                              min_instances=min_instances_, 
                               min_features=min_features, 
                               alpha=alpha, random_forest=rf,
                               leaf_vars = l_vars,
@@ -220,7 +225,7 @@ with open(out_log_path, 'w') as out_log:
                     test_end_t = perf_counter()
                     testing_time = (test_end_t - test_start_t)
 
-#                    Y1_pred = C.compute_predictions1(test_data['X'], n_labels)
+                    Y1_pred = C.compute_predictions2(test_data['X'], n_labels)
 
                     Accuracy.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y_pred))
                     Hamming_score.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y_pred))
@@ -229,11 +234,12 @@ with open(out_log_path, 'w') as out_log:
                     Testing_time.append(testing_time)
                     Headers.append("Fold "+ str(f))
 
-#                    print("Accuracy ", sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y1_pred))
-#                    print("Hamming ",1-sklearn.metrics.hamming_loss(test_data['Y'], Y1_pred))
-#                    print("Exact ", 1-sklearn.metrics.zero_one_loss(test_data['Y'], Y1_pred))
-    
-                    
+                    Accuracy1.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y1_pred))
+                    Hamming_score1.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y1_pred))
+                    Exact_match1.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Y1_pred))
+
+
+                   
                     or_nodes = C.or_nodes
                     n_sum_nodes = C.n_sum_nodes
                     and_nodes = C.and_nodes
@@ -270,7 +276,7 @@ with open(out_log_path, 'w') as out_log:
                                          digits=5)
                     out_log.write(stats + '\n')
                     """
-                    print(tabulate([Accuracy, Hamming_score, Exact_match, Learning_time, Testing_time], 
+                    print(tabulate([Accuracy, Hamming_score, Exact_match, Accuracy1, Hamming_score1, Exact_match1,Learning_time, Testing_time], 
                                    headers=Headers, tablefmt='orgtbl'))
 
                 print('\nAccuracy (mean/std)      :', np.mean(np.array(Accuracy[1:])),"/",np.std(np.array(Accuracy[1:])))

@@ -142,6 +142,9 @@ class TreeNode(Node):
     def mpe(self, evidence={}):
         return self.cltree.mpe(evidence)
 
+    def infer(self, evidence={}):
+        return self.cltree.infer(evidence)
+
 
 ###############################################################################
 
