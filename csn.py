@@ -53,7 +53,7 @@ class Csn:
                  alpha = 1.0, d = None, n_original_samples = None,
                  random_forest = False, leaf_vars = [], m_priors = None, j_priors = None, 
                  and_leaves=False, and_inners=False, min_gain = None, depth = 1,
-                 sample_weight=None, sum_nodes=False):
+                 sample_weight=None, sum_nodes=False, multilabel = False, n_labels=0, ml_tree_structure=0):
 
         self.min_instances = min_instances
         self.min_features = min_features
@@ -65,6 +65,10 @@ class Csn:
         self.node = TreeNode()
         self.sample_weight = sample_weight
         self.sum_nodes = sum_nodes
+
+        self.multilabel = multilabel
+        self.n_labels = n_labels
+        self.ml_tree_structure = ml_tree_structure
 
         self.leaf_vars = leaf_vars
 
@@ -127,7 +131,8 @@ class Csn:
 
             
             self.node.cltree.fit(data, self.m_priors, self.j_priors, alpha=self.alpha, 
-                                 and_leaves=self.and_leaves, sample_weight=self.sample_weight)
+                                 and_leaves=self.and_leaves, sample_weight=self.sample_weight,
+                                 multilabel = self.multilabel, n_labels=self.n_labels, ml_tree_structure=self.ml_tree_structure)
 
             self.orig_ll = self.node.cltree.score_samples_log_proba(self.data, sample_weight=self.sample_weight)
             self.d = int(math.sqrt(self.data.shape[1]))
@@ -382,9 +387,9 @@ class Csn:
                             CL_r = Cltree()
 
                             CL_l.fit(left_data,self.m_priors,self.j_priors,scope=left_scope,alpha=self.alpha*left_weight, 
-                                          and_leaves=self.and_leaves, sample_weight = left_sample_weight)
+                                          and_leaves=self.and_leaves, sample_weight = left_sample_weight,n_labels=self.n_labels)
                             CL_r.fit(right_data,self.m_priors,self.j_priors,scope=right_scope,alpha=self.alpha*right_weight, 
-                                          and_leaves=self.and_leaves, sample_weight = right_sample_weight)
+                                          and_leaves=self.and_leaves, sample_weight = right_sample_weight,n_labels=self.n_labels)
 
                             l_ll = CL_l.score_samples_log_proba(left_data)
                             r_ll = CL_r.score_samples_log_proba(right_data)
@@ -604,9 +609,11 @@ class Csn:
                 CL_r = Cltree()
 
                 CL_l.fit(left_data,self.m_priors,self.j_priors,scope=left_scope,alpha=self.alpha*left_weight, 
-                              and_leaves=self.and_leaves, sample_weight = left_sample_weight)
+                         and_leaves=self.and_leaves, sample_weight = left_sample_weight, 
+                         multilabel = self.multilabel, n_labels=self.n_labels, ml_tree_structure=self.ml_tree_structure)
                 CL_r.fit(right_data,self.m_priors,self.j_priors,scope=right_scope,alpha=self.alpha*right_weight, 
-                              and_leaves=self.and_leaves, sample_weight = right_sample_weight)
+                         and_leaves=self.and_leaves, sample_weight = right_sample_weight, 
+                         multilabel = self.multilabel, n_labels=self.n_labels, ml_tree_structure=self.ml_tree_structure)
 
                 l_ll = CL_l.score_samples_log_proba(left_data, sample_weight = left_sample_weight)
                 r_ll = CL_r.score_samples_log_proba(right_data, sample_weight = right_sample_weight)
@@ -706,7 +713,10 @@ class Csn:
                                                            and_inners=self.and_inners,
                                                            min_gain = self.min_gain, 
                                                            depth=self.depth+1,
-                                                           sample_weight = pq_left_sample_weight)
+                                                           sample_weight = pq_left_sample_weight,
+                                                           multilabel = self.multilabel, 
+                                                           n_labels=self.n_labels, 
+                                                           ml_tree_structure=self.ml_tree_structure)
                     self.node.children[i].right_child = Csn(data=pq_right_data, 
                                                             clt=pq_CL_r, ll=pq_r_ll, 
                                                             min_instances=self.min_instances, 
@@ -720,7 +730,10 @@ class Csn:
                                                             and_inners=self.and_inners,
                                                             min_gain = self.min_gain, 
                                                             depth=self.depth+1,
-                                                            sample_weight = pq_right_sample_weight)
+                                                            sample_weight = pq_right_sample_weight,
+                                                            multilabel = self.multilabel, 
+                                                            n_labels=self.n_labels, 
+                                                            ml_tree_structure=self.ml_tree_structure)
               
 
             elif (gain > gain_c):
@@ -751,7 +764,8 @@ class Csn:
                                            n_original_samples = self.n_original_samples,
                                            and_leaves=self.and_leaves, and_inners=self.and_inners,
                                            min_gain = self.min_gain, depth=self.depth+1,
-                                           sample_weight = best_left_sample_weight)
+                                           sample_weight = best_left_sample_weight,
+                                           multilabel = self.multilabel, n_labels=self.n_labels, ml_tree_structure=self.ml_tree_structure)
                 self.node.right_child = Csn(data=best_right_data, 
                                             clt=best_clt_r, ll=best_r_ll, 
                                             min_instances=self.min_instances, 
@@ -762,7 +776,8 @@ class Csn:
                                             n_original_samples = self.n_original_samples,
                                             and_leaves=self.and_leaves, and_inners=self.and_inners,
                                             min_gain = self.min_gain, depth=self.depth+1,
-                                            sample_weight = best_right_sample_weight)
+                                            sample_weight = best_right_sample_weight,
+                                            multilabel = self.multilabel, n_labels=self.n_labels, ml_tree_structure=self.ml_tree_structure)
 
             else:
                 self.node = SumNode()

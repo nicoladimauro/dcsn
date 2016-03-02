@@ -7,7 +7,8 @@ class mlcsn:
     
     def __init__(self, data, sample_weight = None, 
                  p=1.0, min_instances=5, min_features=3, alpha=1.0, random_forest=False, leaf_vars = [],
-                 and_leaves=False, and_inners=False, sum_nodes=False):
+                 and_leaves=False, and_inners=False, sum_nodes=False,
+                 multilabel = True, n_labels=0, ml_tree_structure=0):
 
         self.data = data
         self.min_instances = min_instances
@@ -36,6 +37,10 @@ class mlcsn:
         self.mdepth = 0.0
 
         self.csn = None
+
+        self.n_labels = n_labels
+        self.multilabel = multilabel
+        self.ml_tree_structure = ml_tree_structure
    
     def fit(self):
         
@@ -48,7 +53,8 @@ class mlcsn:
                            random_forest=self.random_forest,
                            leaf_vars = self.leaf_vars,
                            and_leaves=self.and_leaves, and_inners=self.and_inners,
-                           depth = 1, sum_nodes=self.sum_nodes)
+                           depth = 1, sum_nodes=self.sum_nodes, 
+                           multilabel = self.multilabel, n_labels=self.n_labels, ml_tree_structure=self.ml_tree_structure)
 
         self.ll = self.csn.score_samples_log_proba(self.data)
         self.or_nodes = CSN.Csn._or_nodes 

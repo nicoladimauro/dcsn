@@ -186,13 +186,14 @@ class Cltree:
 
         MI = self.cMI(log_probs, log_j_probs)
 
+
         if multilabel == True:
             if ml_tree_structure == 1:
                 MI[-n_labels:,-n_labels:] += np.max(MI)
             elif ml_tree_structure == 2:
                 MI[-n_labels:,-n_labels:] += np.max(MI)
                 MI[:-n_labels,:-n_labels] = 0
-
+        
         " the tree is represented as a sequence of parents"
 
         mst = minimum_spanning_tree(-(MI))

@@ -91,6 +91,10 @@ parser.add_argument('-v', '--verbose', type=int, nargs='?',
 parser.add_argument('-l',  action='store_true', default=False,
                     help='Labels as leafs.')
 
+parser.add_argument('-ts', type=int, nargs='?',
+                    default=0,
+                    help='Tree structure')
+
 parser.add_argument('-f', type=int, nargs='?',
                     default=5,
                     help='Number of folds for the dataset')
@@ -211,6 +215,9 @@ with open(out_log_path, 'w') as out_log:
                               min_features=min_features, 
                               alpha=alpha, random_forest=rf,
                               leaf_vars = l_vars,
+                              n_labels = train['Y'].shape[1],
+                              multilabel = True,
+                              ml_tree_structure=args.ts,
                               and_leaves = and_leaf,
                               and_inners = and_node,
                               sum_nodes = sum_nodes)
@@ -227,7 +234,9 @@ with open(out_log_path, 'w') as out_log:
                     test_end_t = perf_counter()
                     testing_time = (test_end_t - test_start_t)
 
+                    """
                     Y1_pred = C.compute_predictions2(test_data['X'], n_labels)
+                    """
 
                     Accuracy.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y_pred))
                     Hamming_score.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y_pred))
@@ -236,10 +245,11 @@ with open(out_log_path, 'w') as out_log:
                     Testing_time.append(testing_time)
                     Headers.append("Fold "+ str(f))
 
+                    """
                     Accuracy1.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y1_pred))
                     Hamming_score1.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y1_pred))
                     Exact_match1.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Y1_pred))
-
+                    """
 
                    
                     or_nodes = C.or_nodes
