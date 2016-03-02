@@ -1,8 +1,9 @@
 """
-Chow-Liu Trees
+Tree Bayesian Networks: a probability distribution factored according to a tree 
+whose structure is learned using the Chow-Liu algorithm
 
-Chow, C. K. and Liu, C. N. (1968), Approximating discrete probability distributions with dependence trees, 
-IEEE Transactions on Information Theory IT-14 (3): 462-467. 
+Chow, C. K. and Liu, C. N. (1968), Approximating discrete probability distributions 
+with dependence trees, IEEE Transactions on Information Theory IT-14 (3): 462-467. 
 
 """
 
@@ -11,13 +12,9 @@ import numba
 from scipy import sparse
 from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.sparse.csgraph import depth_first_order
-
 from logr import logr
 from utils import check_is_fitted
-
 import itertools
-
-
 
 ###############################################################################
 
@@ -93,35 +90,9 @@ def compute_log_factors(tree,
     return log_factors
 
 ###############################################################################
-@numba.njit
-def comp(X, C, r, c):
-    for i in range(c):
-        for k in range(r):
-            if X[k,i]:
-                for j in range(i,c):
-                    if X[k,j]:
-                        C[i,j] += 1
-    for i in range(1,c):
-        for j in range(i):
-            C[i,j] = C[j,i]
-
-
-@numba.jit
-def comp1(Ys, n, C):
-    i = 0
-    start = 0
-    prec = -1
-    for i in range(n):
-        if Ys[i] < prec:
-            start = 0
-        for j in range(start+1):
-            C[Ys[i-j],Ys[i]] += 1
-            print(i,j,start,Ys[i-j],Ys[i])
-        start += 1
-        prec = Ys[i]
 
 @numba.njit
-def comp2(X, C, NZ, r, c):
+def compute_cooccurences_numba(X, C, NZ, r, c):
     for k in range(r):
         non_zeros = 0
         for i in range(c):
@@ -147,7 +118,7 @@ class Cltree:
     def is_forest(self):
         return self._forest
 
-    def fit(self, X, m_priors, j_priors, alpha=1.0, sample_weight=None, scope=None, and_leaves=False):
+    def fit(self, X, m_priors, j_priors, alpha=1.0, sample_weight=None, scope=None, and_leaves=False, multilabel = False, n_labels=0, ml_tree_structure=0):
         """Fit the model to the data.
 
         Parameters
@@ -172,6 +143,26 @@ class Cltree:
 
         and_leaves: boolean, default=False
 
+        multilabel: boolean, default=False
+        its value indicates whether the cltree are used for multilabel classification 
+        problems when imported by mlcsn.py
+
+        n_labels: integer, default=0
+        in case of multilabel classification problem indicates the number of labels,
+        assumed to be the n_labels rows of X
+
+        ml_tree_structure: integer, default=0
+        in case of multilabel classification problem indicates the structure of the tree 
+        to be learned. The set of features F corresponds to the union of A (the attributes)
+        and Y (the labels):
+        - 0, no constraint on the resulting tree
+        - 1, the parent of each variable in Y must have the parent in Y, while the parent of each
+        variable in A can have the parent in A or in Y. A label variable depends on a label 
+        variable; an attribute variable can depend on a label variable or on an attribute variable
+        - 2, the parent of each variable in Y must have the parent in Y, and the parent of each
+        variable in A can have the parent in Y. A label variable depends on a label variable; an 
+        attribute variable depends on a label variable
+        
         """
 
 
@@ -194,7 +185,16 @@ class Cltree:
 
 
         MI = self.cMI(log_probs, log_j_probs)
+
+        if multilabel == True:
+            if ml_tree_structure == 1:
+                MI[-n_labels:,-n_labels:] += np.max(MI)
+            elif ml_tree_structure == 2:
+                MI[-n_labels:,-n_labels:] += np.max(MI)
+                MI[:-n_labels,:-n_labels] = 0
+
         " the tree is represented as a sequence of parents"
+
         mst = minimum_spanning_tree(-(MI))
         dfs_tree = depth_first_order(mst, directed=False, i_start=0)
 
@@ -239,32 +239,12 @@ class Cltree:
         log_probs = np.zeros((self.n_features,2))
         log_j_probs = np.zeros((self.n_features,self.n_features,2,2))
 
-        """
-        C1 = np.zeros((X.shape[1], X.shape[1]))
-        comp(X, C1, X.shape[0], X.shape[1])
-        """
-        
-
-        C = np.zeros((X.shape[1], X.shape[1]))
+        cooccurences = np.zeros((X.shape[1], X.shape[1]))
         NZ = np.zeros(X.shape[1],dtype='int')
 
-        comp2(X, C, NZ, X.shape[0], X.shape[1])
+        compute_cooccurences_numba(X, cooccurences, NZ, X.shape[0], X.shape[1])
         
-
-        """
-        sparse_cooccurences = sparse.csr_matrix(X)
-
-        if sample_weight is None:
-            cooccurences_ = sparse_cooccurences.T.dot(sparse_cooccurences)
-            cooccurences = np.array(cooccurences_.todense())
-        else:
-            weighted_X = np.einsum('ij,i->ij', X, sample_weight)
-            cooccurences = sparse_cooccurences.T.dot(weighted_X)
-        """
-
-        cooccurences = C
         p = cooccurences.diagonal() 
-
 
         return log_probs_numba(self.n_features, 
                                self.scope, 
