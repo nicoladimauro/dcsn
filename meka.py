@@ -3,6 +3,7 @@
 
 import subprocess
 import numpy as np
+import math
 
 class Meka(object):
     """ Runs the MEKA classifier
@@ -26,7 +27,7 @@ class Meka(object):
         self.classpath = meka_classpath
         self.meka_classifier = meka_classifier
         self.threshold = threshold
-        self.verbosity = 6
+        self.verbosity = 20
         self.weka_classifier = weka_classifier
         self.output = None
         self.warnings = None
@@ -102,10 +103,7 @@ class Meka(object):
         # parse into list of row classifications
 
         self.results = np.array(
-            [item.split('[ ')[2].split(' ]')[0].replace('.0','').split() for item in predictions]).astype(float)
-
-        self.results = (self.results > self.threshold).astype(int)
-
+            [item.split('[ ')[2].split(' ]')[0].replace('0,','0.').split() for item in predictions]).astype(float)
 
         # split, cleanup, remove empty lines
         statistics = self.output.decode('utf-8').split(predictions_split_head)[1].split(predictions_split_foot)[1]
@@ -119,6 +117,12 @@ class Meka(object):
             s = item.split(":")
             if len(s)>1:
                 self.statistics[s[0]]=s[1]
+        print("Threshold: ", float(self.statistics['Threshold']))
+        self.threshold = float(self.statistics['Threshold'])
+        self.results = (self.results >= self.threshold).astype(int)
+
+
+
 
 
 

@@ -205,6 +205,7 @@ class Cltree:
         self.tree[0] = -1
         for p in range(1, self.n_features):
             self.tree[p]=dfs_tree[1][p]
+
         
         penalization = logr(X.shape[0])/(2*X.shape[0])
 
