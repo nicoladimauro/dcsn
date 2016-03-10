@@ -161,6 +161,7 @@ class mlcsn:
 
         probs = np.zeros((n_labels,2))
         
+
         k = 0
         for x in X:
             for j in range(n_attributes):
