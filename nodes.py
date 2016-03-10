@@ -59,6 +59,21 @@ class OrNode(Node):
                 mpe_log_proba = right_mpe_log_proba + logr(self.right_weight)
         return (mpe_state, mpe_log_proba)
 
+    def infer(self, evidence={}):
+        log_proba = 0.0
+        state_evidence = evidence.get(self.or_feature_scope)
+        if state_evidence is not None:
+            if state_evidence == 0:
+                log_proba = self.left_child.infer(evidence)
+                log_proba += logr(self.left_weight)
+            else:
+                log_proba = self.right_child.infer(evidence)
+                log_proba += logr(self.right_weight)
+        else:
+            left_log_proba = self.left_child.infer(evidence)
+            right_log_proba = self.right_child.infer(evidence)
+            log_proba = logr(np.exp(left_log_proba)*self.left_weight + np.exp(right_log_proba)*self.right_weight)
+        return log_proba
 
 class OptionNode(Node):
     _node_type = "option"
