@@ -177,11 +177,9 @@ with open(out_log_path, 'w') as out_log:
                 Testing_time = ['Testing time']
                 Headers = ['Metric']
 
-                """
                 Accuracy1 = ['Accuracy']
                 Hamming_score1 = ['Hamming Score']
                 Exact_match1 = ['Exact match']
-                """
 
                 for f in range(args.f):
                 
@@ -235,20 +233,19 @@ with open(out_log_path, 'w') as out_log:
                     test_end_t = perf_counter()
                     testing_time = (test_end_t - test_start_t)
 
-                    """
                     Y1_pred = C.compute_predictions2(test_data['X'], n_labels)
-                    """
+
                     Accuracy.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y_pred))
                     Hamming_score.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y_pred))
                     Exact_match.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Y_pred))
                     Learning_time.append(learning_time)
                     Testing_time.append(testing_time)
                     Headers.append("Fold "+ str(f))
-                    """
+
                     Accuracy1.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y1_pred))
                     Hamming_score1.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y1_pred))
                     Exact_match1.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Y1_pred))
-                    """
+
                    
                     or_nodes = C.or_nodes
                     n_sum_nodes = C.n_sum_nodes
@@ -286,21 +283,22 @@ with open(out_log_path, 'w') as out_log:
                                          digits=5)
                     out_log.write(stats + '\n')
                     """
-                    """
+
                     print(tabulate([Accuracy, Hamming_score, Exact_match, Accuracy1, Hamming_score1, Exact_match1,Learning_time, Testing_time], 
                                    headers=Headers, tablefmt='orgtbl'))
+
                     """
                     print(tabulate([Accuracy, Hamming_score, Exact_match, Learning_time, Testing_time], 
                                    headers=Headers, tablefmt='orgtbl'))
-
+                    """
                 print('\nAccuracy (mean/std)      :', np.mean(np.array(Accuracy[1:])),"/",np.std(np.array(Accuracy[1:])))
                 print('Hamming score (mean/std) :', np.mean(np.array(Hamming_score[1:])), "/", np.std(np.array(Hamming_score[1:])))
                 print('Exact match (mean/std)   :', np.mean(np.array(Exact_match[1:])), "/", np.std(np.array(Exact_match[1:])))
-                """
+
                 print('Accuracy1 (mean/std)      :', np.mean(np.array(Accuracy1[1:])),"/",np.std(np.array(Accuracy1[1:])))
                 print('Hamming score1 (mean/std) :', np.mean(np.array(Hamming_score1[1:])), "/", np.std(np.array(Hamming_score1[1:])))
                 print('Exact match1 (mean/std)   :', np.mean(np.array(Exact_match1[1:])), "/", np.std(np.array(Exact_match1[1:])))
-                """
+
                 print('Learning Time (mean/std)          :', np.mean(np.array(Learning_time[1:])), "/", np.std(np.array(Learning_time[1:])))
                 print('Testing Time (mean/std)          :', np.mean(np.array(Testing_time[1:])), "/", np.std(np.array(Testing_time[1:])))
 
