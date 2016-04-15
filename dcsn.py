@@ -186,7 +186,6 @@ with open(out_log_path, 'w') as out_log:
                          min_instances=min_instances, 
                          min_features=min_features, 
                          alpha=alpha, random_forest=rf,
-                         leaf_vars = [6,7,5,11,9,13],
                          and_leaves = and_leaf,
                          and_inners = and_node,sum_nodes = sum_nodes)
 

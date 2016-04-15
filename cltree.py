@@ -246,6 +246,15 @@ class Cltree:
 
         compute_cooccurences_numba(X, cooccurences, NZ, X.shape[0], X.shape[1])
         
+        """
+        sparse_cooccurences = sparse.csr_matrix(X)
+        if sample_weight is None:
+            cooccurences_ = sparse_cooccurences.T.dot(sparse_cooccurences)
+            cooccurences = np.array(cooccurences_.todense())
+        else:
+            weighted_X = np.einsum('ij,i->ij', X, sample_weight)
+            cooccurences = sparse_cooccurences.T.dot(weighted_X)
+        """
         p = cooccurences.diagonal() 
 
         return log_probs_numba(self.n_features, 
@@ -429,7 +438,6 @@ class Cltree:
                 if prob > maxprob:
                     maxprob = prob
                     maxstate = w
-
         return (maxstate, maxprob)
 
 """
@@ -443,10 +451,10 @@ print(C.naiveMPE())
 
 evidence = {}
 evidence[2]=0
-evidence[5]=1
-evidence[7]=0
-evidence[0]=0
 
 print (C.mpe(evidence=evidence))
 print(C.naiveMPE(evidence=evidence))
+print(np.exp(C.infer(evidence=evidence)))
+evidence[2]=1
+print(np.exp(C.infer(evidence=evidence)))
 """
