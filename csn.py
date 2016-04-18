@@ -80,8 +80,9 @@ class Csn:
 
         if m_priors is None:
             self.m_priors = np.zeros((self.data.shape[1],2))
+            """probabilità a priori di ogni feature (0,1)"""
             for i in range(self.data.shape[1]):
-                self.m_priors[i,1] = (self.data[:,i].sum() + self.lprior/2)/ (self.data.shape[0] + self.lprior)
+                self.m_priors[i,1] = (self.data[:,i].sum() + self.lprior/2)/ (self.data.shape[0] + self.lprior)#<-- Laplace
                 self.m_priors[i,0] = 1 - self.m_priors[i][1]
 
             self.j_priors = np.zeros((self.data.shape[1],self.data.shape[1],2,2))
@@ -97,6 +98,7 @@ class Csn:
                         self.j_priors[i,j,0,1] = cond[j,j] - cond[i,j] 
                         self.j_priors[i,j,1,0] = cond[i,i] - cond[i,j] 
                         self.j_priors[i,j,0,0] = self.data.shape[0] - self.j_priors[i,j,1,1] - self.j_priors[i,j,0,1] - self.j_priors[i,j,1,0]
+                        #Laplace
                         self.j_priors[i,j,1,1] = (self.j_priors[i,j,1,1] + self.lprior/4)/ (self.data.shape[0] + self.lprior)
                         self.j_priors[i,j,0,1] = (self.j_priors[i,j,0,1] + self.lprior/4)/ (self.data.shape[0] + self.lprior)
                         self.j_priors[i,j,1,0] = (self.j_priors[i,j,1,0] + self.lprior/4)/ (self.data.shape[0] + self.lprior)
@@ -221,8 +223,8 @@ class Csn:
         else:
             self.left_child.mpe(x)
             self.right_child.mpe(x)
-            lv = self.left_child.mpe_value * left_weight
-            rv = self.right_child.mpe_value * right_weight
+            lv = self.left_child.mpe_value * self.left_weight
+            rv = self.right_child.mpe_value * self.right_weight
             # maximization
             if lv > rv:
                 self.mpe_value = lv

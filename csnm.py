@@ -137,6 +137,7 @@ class Csnm:
             for x in data:
                 prob = 0.0
                 for k in range(n_c):
+                    """Mean probability from CutSetNets"""
                     prob = prob + np.exp(self.csns[k].score_sample_log_proba(x))*self.weights[k]
                 mean = mean + logr(prob)
                 out_log.write('%.10f\n'%logr(prob))
@@ -154,3 +155,8 @@ class Csnm:
             mean = mean + prob
         return mean 
 
+    """def predict_from_instance(self,X):
+        prob=0.0
+        for k in range(self.max_components):
+            prob=prob + np.exp(self.csns[k].score_sample_log_proba(X)*self.weights[k])
+        return prob"""
