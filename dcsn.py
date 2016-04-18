@@ -278,10 +278,11 @@ with open(out_log_path, 'w') as out_log:
                     out_log.write(stats + '\n')
                     out_log.flush()
 
+
     #
     # writing as last line the best params
     out_log.write("{0}".format(best_state))
     out_log.flush()
-
+print(C.predict_from_instance([0,0,1,1,0,1,1,1,0,0,0,0,0,0,0,0]))
 logging.info('Grid search ended.')
 logging.info('Best params:\n\t%s', best_state)

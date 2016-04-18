@@ -165,6 +165,7 @@ class Cltree:
         if self.and_leaves == True:
             for p in range(1,self.n_features):
                 if MI[self.tree[p],p]<penalization:
+                    """ taglio"""
                     self.tree[p]=-1
                     self.num_trees = self.num_trees + 1
             if self.num_trees > 1:
