@@ -170,8 +170,10 @@ class Cltree:
         self.and_leaves = and_leaves
         self.n_features = X.shape[1]
 
+        rootTree = False
         if scope is None:
             self.scope = np.array([i for i in range(self.n_features)])
+            rootTree = True
         else:
             self.scope = scope
 
@@ -228,7 +230,7 @@ class Cltree:
             self.tree[selected_MI[p][0]]=-1
         """
 
-        if multilabel == True:
+        if multilabel == True and rootTree:
             pX = 0
             for i in range(self.n_features-n_labels):
                 if self.tree[i]>=(self.n_features-n_labels):

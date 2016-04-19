@@ -93,6 +93,7 @@ class mlcsn:
             for i in range(n_attributes):
                 evidence[i]=x[i]
             (state, prob) = self.mpe(evidence = evidence)
+
             sum = 0
             for i in range(n_attributes, n_attributes + n_labels):
                 sum += state[i]
