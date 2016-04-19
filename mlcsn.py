@@ -154,7 +154,7 @@ class mlcsn:
 
         return predictions
 
-    def compute_predictions2(self, X, n_labels):
+    def marginal_inference(self, X, n_labels):
         predictions = np.zeros((X.shape[0],n_labels),dtype=np.int)
         n_attributes = X.shape[1]
         x1 = np.zeros(n_attributes + n_labels, dtype=np.int)
@@ -171,9 +171,9 @@ class mlcsn:
                 for j in range(n_attributes):
                     D[j] = x[j]
                 D[l+n_attributes]=0
-                prob0 = self.csn.infer(D)
+                prob0 = self.csn.marginal_inference(D)
                 D[l+n_attributes]=1
-                prob1 = self.csn.infer(D)
+                prob1 = self.csn.marginal_inference(D)
                 probs[l,0] = prob0
                 probs[l,1] = prob1
                 predictions[k,l] = np.argmax(probs[l])
@@ -183,3 +183,42 @@ class mlcsn:
             k += 1
 
         return predictions
+
+    def compute_probs(self, data):
+
+
+        probs_XY = np.zeros(data['X'].shape[0])
+        probs_X = np.zeros(data['X'].shape[0])
+        probs_Y = np.zeros(data['X'].shape[0])
+        probs_Y_given_X = np.zeros(data['X'].shape[0])
+
+        XY = np.concatenate((data['X'],data['Y']), axis = 1)
+        X = data['X']
+        Y = data['Y']
+        
+
+        for i in range(X.shape[0]):
+            log_prob_xy = self.csn.score_sample_log_proba(XY[i])
+
+            D = {}
+            for j in range(X.shape[1]):
+                D[j] = X[i,j]
+            log_prob_x = self.csn.marginal_inference(D)
+            D = {}
+            for j in range(Y.shape[1]):
+                D[j+X.shape[1]] = Y[i,j]
+            log_prob_y = self.csn.marginal_inference(D)
+
+            """
+            probs_XY[i] = np.exp(log_prob_xy)
+            probs_X[i] = np.exp(log_prob_x)
+            probs_Y[i] = np.exp(log_prob_y)
+            probs_Y_given_X[i] = probs_XY[i] / probs_X[i]
+            """
+            probs_XY[i] = log_prob_xy
+            probs_X[i] = log_prob_x
+            probs_Y[i] = log_prob_y
+            probs_Y_given_X[i] = probs_XY[i] - probs_X[i]
+
+        return(probs_XY, probs_X, probs_Y, probs_Y_given_X)
+            

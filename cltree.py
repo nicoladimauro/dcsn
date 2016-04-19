@@ -193,6 +193,8 @@ class Cltree:
             elif ml_tree_structure == 2:
                 MI[-n_labels:,-n_labels:] += np.max(MI)
                 MI[:-n_labels,:-n_labels] = 0
+            elif ml_tree_structure == 3:
+                MI[:-n_labels,:-n_labels] = 0
         
         " the tree is represented as a sequence of parents"
 
@@ -226,7 +228,18 @@ class Cltree:
             self.tree[selected_MI[p][0]]=-1
         """
 
-
+        if multilabel == True:
+            pX = 0
+            for i in range(self.n_features-n_labels):
+                if self.tree[i]>=(self.n_features-n_labels):
+                    pX += 1
+            pY = 0
+            for i in range(self.n_features-n_labels,self.n_features):
+                if self.tree[i]>=(self.n_features-n_labels):
+                    pY += 1
+                    
+            print("Xs with Y parent: ", pX)
+            print("Ys with Y parent: ", pY)            
 
         self.num_edges = self.n_features - self.num_trees
         # computing the factored represetation
@@ -394,7 +407,7 @@ class Cltree:
         return (MAP, logprob)
 
 
-    def infer(self, evidence = {}):
+    def marginal_inference(self, evidence = {}):
 
         messages = np.zeros((self.n_features, 2))
         logprob = 0.0
@@ -454,7 +467,7 @@ evidence[2]=0
 
 print (C.mpe(evidence=evidence))
 print(C.naiveMPE(evidence=evidence))
-print(np.exp(C.infer(evidence=evidence)))
+print(np.exp(C.marginal_inference(evidence=evidence)))
 evidence[2]=1
-print(np.exp(C.infer(evidence=evidence)))
+print(np.exp(C.marginal_inference(evidence=evidence)))
 """

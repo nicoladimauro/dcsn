@@ -233,7 +233,7 @@ with open(out_log_path, 'w') as out_log:
                     test_end_t = perf_counter()
                     testing_time = (test_end_t - test_start_t)
 
-                    Y1_pred = C.compute_predictions2(test_data['X'], n_labels)
+                    Y1_pred = C.marginal_inference(test_data['X'], n_labels)
 
                     Accuracy.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y_pred))
                     Hamming_score.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y_pred))
@@ -247,6 +247,12 @@ with open(out_log_path, 'w') as out_log:
                     Exact_match1.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Y1_pred))
 
                    
+                    train_probs = C.compute_probs(train)
+                    test_probs = C.compute_probs(test_data)
+
+                    print("Train:", np.mean(train_probs[0]),np.mean(train_probs[1]),np.mean(train_probs[2]),np.mean(train_probs[3]))
+                    print("Test:", np.mean(test_probs[0]),np.mean(test_probs[1]),np.mean(test_probs[2]),np.mean(test_probs[3]))
+
                     or_nodes = C.or_nodes
                     n_sum_nodes = C.n_sum_nodes
                     and_nodes = C.and_nodes

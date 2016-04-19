@@ -237,9 +237,9 @@ class Csn:
         """ WRITEME """
         return self.node.mpe(evidence)
 
-    def infer(self, evidence = {}):
+    def marginal_inference(self, evidence = {}):
         """ WRITEME """
-        return self.node.infer(evidence)
+        return self.node.marginal_inference(evidence)
 
     def naiveMPE(self, evidence = {}):
         maxprob = -np.inf
