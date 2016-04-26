@@ -244,7 +244,6 @@ class Csn:
     def naiveMPE(self, evidence = {}):
         maxprob = -np.inf
         maxstate = []
-
         for w in (itertools.product([0, 1], repeat=self.n)):
             ver = True
             for var, state in evidence.items():
@@ -254,10 +253,10 @@ class Csn:
 
             if ver:
                 prob = self.score_sample_log_proba(w)
+                print(prob)
                 if prob > maxprob:
                     maxprob = prob
                     maxstate = w
-                    print(maxprob, maxstate)
         return (maxstate, maxprob)
 
 

@@ -158,6 +158,8 @@ class TreeNode(Node):
         return self.cltree.mpe(evidence)
 
     def marginal_inference(self, evidence={}):
+#        print(self.cltree.marginal_inference(evidence), self.cltree.naive_marginal(evidence))
+#        assert np.isclose([self.cltree.marginal_inference(evidence)], [self.cltree.naive_marginal(evidence)])[0]
         return self.cltree.marginal_inference(evidence)
 
 

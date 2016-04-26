@@ -455,6 +455,26 @@ class Cltree:
                     maxstate = w
         return (maxstate, maxprob)
 
+
+    def naive_marginal(self, evidence = {}):
+        probm = 0.0
+        
+        M = {}
+        for i in range(self.n_features):
+            if evidence.get(i) == None:
+                M[i] = [0,1]
+
+        A = [dict(zip(M,prod)) for prod in itertools.product(*(M[param] for param in M))]
+
+        for D in A:
+            D.update(evidence)
+            prob = self.log_factors[0, D[0], 0]
+            for i in range(1,self.n_features):
+                prob = prob + self.log_factors[i, D[i], D[self.tree[i]]]
+            probm += np.exp(prob)
+        return logr(probm)
+
+
 """
 C = Cltree()
 X = np.random.choice([0,1], size=(2000,15))
@@ -466,10 +486,19 @@ print(C.naiveMPE())
 
 evidence = {}
 evidence[2]=0
-
-print (C.mpe(evidence=evidence))
-print(C.naiveMPE(evidence=evidence))
+evidence[3]=0
 print(np.exp(C.marginal_inference(evidence=evidence)))
+print(np.exp(C.naive_marginal(evidence=evidence)))
+evidence[2]=0
+evidence[3]=1
+print(np.exp(C.marginal_inference(evidence=evidence)))
+print(np.exp(C.naive_marginal(evidence=evidence)))
 evidence[2]=1
+evidence[3]=0
 print(np.exp(C.marginal_inference(evidence=evidence)))
+print(np.exp(C.naive_marginal(evidence=evidence)))
+evidence[2]=1
+evidence[3]=1
+print(np.exp(C.marginal_inference(evidence=evidence)))
+print(np.exp(C.naive_marginal(evidence=evidence)))
 """
