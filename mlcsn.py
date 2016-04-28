@@ -92,12 +92,8 @@ class mlcsn:
             evidence = {}
             for i in range(n_attributes):
                 evidence[i]=x[i]
-            print("Marginal ",self.csn.marginal_inference(evidence))
-            (state, prob) = self.mpe(evidence = evidence)
-            (stateN, ProbN) = self.naiveMPE(evidence = evidence)
 
-            print(state, prob)
-            print(stateN, ProbN)
+            (state, prob) = self.mpe(evidence = evidence)
 
             sum = 0
             for i in range(n_attributes, n_attributes + n_labels):

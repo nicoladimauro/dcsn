@@ -170,16 +170,28 @@ with open(out_log_path, 'w') as out_log:
         for min_instances in m_instances:
             for min_features in m_features:
 
-                Accuracy = ['Accuracy']
-                Hamming_score = ['Hamming Score']
-                Exact_match = ['Exact match']
-                Learning_time = ['Learning time']
-                Testing_time = ['Testing time']
                 Headers = ['Metric']
 
-                Accuracy1 = ['Accuracy']
-                Hamming_score1 = ['Hamming Score']
-                Exact_match1 = ['Exact match']
+                Train_Accuracy_mpe = ['Train Accuracy mpe']
+                Train_Hamming_score_mpe = ['Train Hamming Score mpe']
+                Train_Exact_match_mpe = ['Train Exact match mpe']
+
+                Test_Accuracy_mpe = ['Test Accuracy mpe']
+                Test_Hamming_score_mpe = ['Test Hamming Score mpe']
+                Test_Exact_match_mpe = ['Test Exact match mpe']
+
+                Train_Accuracy_marg = ['Train Accuracy marg']
+                Train_Hamming_score_marg = ['Train Hamming Score marg']
+                Train_Exact_match_marg = ['Train Exact match marg']
+
+                Test_Accuracy_marg = ['Test Accuracy marg']
+                Test_Hamming_score_marg = ['Test Hamming Score marg']
+                Test_Exact_match_marg = ['Test Exact match marg']
+
+                Learning_time = ['Learning time']
+                Testing_time = ['Testing time']
+
+
 
                 for f in range(args.f):
                 
@@ -229,24 +241,34 @@ with open(out_log_path, 'w') as out_log:
 
                     test_data = Dataset.load_arff("./data/"+dataset_name+".f"+str(f)+".test.arff", n_labels, endian = "big", input_feature_type = 'int', encode_nominal = True)
                     test_start_t = perf_counter()
-                    Y_pred = C.compute_predictions(test_data['X'], n_labels)
+                    Test_Y_pred_mpe = C.compute_predictions(test_data['X'], n_labels)
                     test_end_t = perf_counter()
                     testing_time = (test_end_t - test_start_t)
 
-                    Y1_pred = C.marginal_inference(test_data['X'], n_labels)
+                    Test_Y_pred_marg = C.marginal_inference(test_data['X'], n_labels)
 
-                    Accuracy.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y_pred))
-                    Hamming_score.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y_pred))
-                    Exact_match.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Y_pred))
+                    Train_Y_pred_mpe = C.compute_predictions(train['X'], n_labels)
+                    Train_Y_pred_marg = C.marginal_inference(train['X'], n_labels)
+
+                    Test_Accuracy_mpe.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Test_Y_pred_mpe))
+                    Test_Hamming_score_mpe.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Test_Y_pred_mpe))
+                    Test_Exact_match_mpe.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Test_Y_pred_mpe))
+                    Test_Accuracy_marg.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Test_Y_pred_marg))
+                    Test_Hamming_score_marg.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Test_Y_pred_marg))
+                    Test_Exact_match_marg.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Test_Y_pred_marg))
+
+                    Train_Accuracy_mpe.append(sklearn.metrics.jaccard_similarity_score(train['Y'], Train_Y_pred_mpe))
+                    Train_Hamming_score_mpe.append(1-sklearn.metrics.hamming_loss(train['Y'], Train_Y_pred_mpe))
+                    Train_Exact_match_mpe.append(1-sklearn.metrics.zero_one_loss(train['Y'], Train_Y_pred_mpe))
+                    Train_Accuracy_marg.append(sklearn.metrics.jaccard_similarity_score(train['Y'], Train_Y_pred_marg))
+                    Train_Hamming_score_marg.append(1-sklearn.metrics.hamming_loss(train['Y'], Train_Y_pred_marg))
+                    Train_Exact_match_marg.append(1-sklearn.metrics.zero_one_loss(train['Y'], Train_Y_pred_marg))
+
                     Learning_time.append(learning_time)
                     Testing_time.append(testing_time)
                     Headers.append("Fold "+ str(f))
 
-                    Accuracy1.append(sklearn.metrics.jaccard_similarity_score(test_data['Y'], Y1_pred))
-                    Hamming_score1.append(1-sklearn.metrics.hamming_loss(test_data['Y'], Y1_pred))
-                    Exact_match1.append(1-sklearn.metrics.zero_one_loss(test_data['Y'], Y1_pred))
-
-                   
+                  
                     train_probs = C.compute_probs(train)
                     test_probs = C.compute_probs(test_data)
 
@@ -290,30 +312,55 @@ with open(out_log_path, 'w') as out_log:
                     out_log.write(stats + '\n')
                     """
 
-                    print(tabulate([Accuracy, Hamming_score, Exact_match, Accuracy1, Hamming_score1, Exact_match1,Learning_time, Testing_time], 
+                    print(tabulate([Train_Accuracy_mpe, Train_Accuracy_marg, Train_Hamming_score_mpe, Train_Hamming_score_marg, 
+                                    Train_Exact_match_mpe, Train_Exact_match_mpe, 
+                                    Test_Accuracy_mpe, Test_Accuracy_marg, Test_Hamming_score_mpe, Test_Hamming_score_marg, 
+                                    Test_Exact_match_mpe, Test_Exact_match_mpe, 
+                                    Learning_time, Testing_time], 
                                    headers=Headers, tablefmt='orgtbl'))
 
-                    """
-                    print(tabulate([Accuracy, Hamming_score, Exact_match, Learning_time, Testing_time], 
+                print('\nTrain Accuracy mpe (mean/std)        :', np.mean(np.array(Train_Accuracy_mpe[1:])),"/",np.std(np.array(Train_Accuracy_mpe[1:])))
+                print('Train Accuracy marg (mean/std)       :', np.mean(np.array(Train_Accuracy_marg[1:])),"/",np.std(np.array(Train_Accuracy_marg[1:])))
+                print('Train Hamming score mpe (mean/std)   :', np.mean(np.array(Train_Hamming_score_mpe[1:])), "/", np.std(np.array(Train_Hamming_score_mpe[1:])))
+                print('Train Hamming score marg (mean/std)  :', np.mean(np.array(Train_Hamming_score_marg[1:])), "/", np.std(np.array(Train_Hamming_score_marg[1:])))
+                print('Train Exact match mpe (mean/std)     :', np.mean(np.array(Train_Exact_match_mpe[1:])), "/", np.std(np.array(Train_Exact_match_mpe[1:])))
+                print('Train Exact match marg (mean/std)    :', np.mean(np.array(Train_Exact_match_marg[1:])), "/", np.std(np.array(Train_Exact_match_marg[1:])))
+
+                print('\nTest Accuracy mpe (mean/std)        :', np.mean(np.array(Test_Accuracy_mpe[1:])),"/",np.std(np.array(Test_Accuracy_mpe[1:])))
+                print('Test Accuracy marg (mean/std)       :', np.mean(np.array(Test_Accuracy_marg[1:])),"/",np.std(np.array(Test_Accuracy_marg[1:])))
+                print('Test Hamming score mpe (mean/std)   :', np.mean(np.array(Test_Hamming_score_mpe[1:])), "/", np.std(np.array(Test_Hamming_score_mpe[1:])))
+                print('Test Hamming score marg (mean/std)  :', np.mean(np.array(Test_Hamming_score_marg[1:])), "/", np.std(np.array(Test_Hamming_score_marg[1:])))
+                print('Test Exact match mpe (mean/std)     :', np.mean(np.array(Test_Exact_match_mpe[1:])), "/", np.std(np.array(Test_Exact_match_mpe[1:])))
+                print('Test Exact match marg (mean/std)    :', np.mean(np.array(Test_Exact_match_marg[1:])), "/", np.std(np.array(Test_Exact_match_marg[1:])))
+
+                print('\nLearning Time (mean/std)            :', np.mean(np.array(Learning_time[1:])), "/", np.std(np.array(Learning_time[1:])))
+                print('Testing Time (mean/std)             :', np.mean(np.array(Testing_time[1:])), "/", np.std(np.array(Testing_time[1:])))
+
+
+                out_log.write(tabulate([Train_Accuracy_mpe, Train_Accuracy_marg, Train_Hamming_score_mpe, Train_Hamming_score_marg, 
+                                    Train_Exact_match_mpe, Train_Exact_match_mpe, 
+                                    Test_Accuracy_mpe, Test_Accuracy_marg, Test_Hamming_score_mpe, Test_Hamming_score_marg, 
+                                    Test_Exact_match_mpe, Test_Exact_match_mpe, 
+                                    Learning_time, Testing_time], 
                                    headers=Headers, tablefmt='orgtbl'))
-                    """
-                print('\nAccuracy (mean/std)      :', np.mean(np.array(Accuracy[1:])),"/",np.std(np.array(Accuracy[1:])))
-                print('Hamming score (mean/std) :', np.mean(np.array(Hamming_score[1:])), "/", np.std(np.array(Hamming_score[1:])))
-                print('Exact match (mean/std)   :', np.mean(np.array(Exact_match[1:])), "/", np.std(np.array(Exact_match[1:])))
 
-                print('Accuracy1 (mean/std)      :', np.mean(np.array(Accuracy1[1:])),"/",np.std(np.array(Accuracy1[1:])))
-                print('Hamming score1 (mean/std) :', np.mean(np.array(Hamming_score1[1:])), "/", np.std(np.array(Hamming_score1[1:])))
-                print('Exact match1 (mean/std)   :', np.mean(np.array(Exact_match1[1:])), "/", np.std(np.array(Exact_match1[1:])))
+                out_log.write('\nTrain Accuracy mpe (mean/std)        : %f / %f' % ( np.mean(np.array(Train_Accuracy_mpe[1:])),np.std(np.array(Train_Accuracy_mpe[1:]))))
+                out_log.write('Train Accuracy marg (mean/std)       : %f / %f' % ( np.mean(np.array(Train_Accuracy_marg[1:])),np.std(np.array(Train_Accuracy_marg[1:]))))
+                out_log.write('Train Hamming score mpe (mean/std)   : %f / %f' % ( np.mean(np.array(Train_Hamming_score_mpe[1:])), np.std(np.array(Train_Hamming_score_mpe[1:]))))
+                out_log.write('Train Hamming score marg (mean/std)  : %f / %f' % ( np.mean(np.array(Train_Hamming_score_marg[1:])), np.std(np.array(Train_Hamming_score_marg[1:]))))
+                out_log.write('Train Exact match mpe (mean/std)     : %f / %f' % ( np.mean(np.array(Train_Exact_match_mpe[1:])), np.std(np.array(Train_Exact_match_mpe[1:]))))
+                out_log.write('Train Exact match marg (mean/std)    : %f / %f' % ( np.mean(np.array(Train_Exact_match_marg[1:])), np.std(np.array(Train_Exact_match_marg[1:]))))
 
-                print('Learning Time (mean/std)          :', np.mean(np.array(Learning_time[1:])), "/", np.std(np.array(Learning_time[1:])))
-                print('Testing Time (mean/std)          :', np.mean(np.array(Testing_time[1:])), "/", np.std(np.array(Testing_time[1:])))
+                out_log.write('\nTest Accuracy mpe (mean/std)        : %f / %f' % ( np.mean(np.array(Test_Accuracy_mpe[1:])),np.std(np.array(Test_Accuracy_mpe[1:]))))
+                out_log.write('Test Accuracy marg (mean/std)       : %f / %f' % ( np.mean(np.array(Test_Accuracy_marg[1:])),np.std(np.array(Test_Accuracy_marg[1:]))))
+                out_log.write('Test Hamming score mpe (mean/std)   : %f / %f' % ( np.mean(np.array(Test_Hamming_score_mpe[1:])), np.std(np.array(Test_Hamming_score_mpe[1:]))))
+                out_log.write('Test Hamming score marg (mean/std)  : %f / %f' % ( np.mean(np.array(Test_Hamming_score_marg[1:])), np.std(np.array(Test_Hamming_score_marg[1:]))))
+                out_log.write('Test Exact match mpe (mean/std)     : %f / %f' % ( np.mean(np.array(Test_Exact_match_mpe[1:])), np.std(np.array(Test_Exact_match_mpe[1:]))))
+                out_log.write('Test Exact match marg (mean/std)    : %f / %f' % ( np.mean(np.array(Test_Exact_match_marg[1:])), np.std(np.array(Test_Exact_match_marg[1:]))))
+
+                out_log.write('\nLearning Time (mean/std)          : %f / %f' % ( np.mean(np.array(Learning_time[1:])), np.std(np.array(Learning_time[1:]))))
+                out_log.write('Testing Time (mean/std)          : %f / %f' % ( np.mean(np.array(Testing_time[1:])), np.std(np.array(Testing_time[1:]))))
 
 
-                out_log.write(tabulate([Accuracy, Hamming_score, Exact_match, Learning_time, Testing_time], 
-                                       headers=Headers, tablefmt='orgtbl'))
-                out_log.write('\n\nAccuracy (mean/std)      : %f / %f' % (np.mean(np.array(Accuracy[1:])),np.std(np.array(Accuracy[1:]))))
-                out_log.write('\nHamming score (mean/std) : %f / %f' % (np.mean(np.array(Hamming_score[1:])), np.std(np.array(Hamming_score[1:]))))
-                out_log.write('\nExact match (mean/std)   : %f / %f' % (np.mean(np.array(Exact_match[1:])), np.std(np.array(Exact_match[1:]))))
-                out_log.write('\nLearning Time (mean/std) : %f / %f' % (np.mean(np.array(Learning_time[1:])), np.std(np.array(Learning_time[1:]))))
-                out_log.write('\nTesting Time (mean/std)  : %f / %f' % (np.mean(np.array(Testing_time[1:])), np.std(np.array(Testing_time[1:]))))
+
                 out_log.flush()
