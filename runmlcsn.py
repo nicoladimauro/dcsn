@@ -313,9 +313,9 @@ with open(out_log_path, 'w') as out_log:
                     """
 
                     print(tabulate([Train_Accuracy_mpe, Train_Accuracy_marg, Train_Hamming_score_mpe, Train_Hamming_score_marg, 
-                                    Train_Exact_match_mpe, Train_Exact_match_mpe, 
+                                    Train_Exact_match_mpe, Train_Exact_match_marg, 
                                     Test_Accuracy_mpe, Test_Accuracy_marg, Test_Hamming_score_mpe, Test_Hamming_score_marg, 
-                                    Test_Exact_match_mpe, Test_Exact_match_mpe, 
+                                    Test_Exact_match_mpe, Test_Exact_match_marg, 
                                     Learning_time, Testing_time], 
                                    headers=Headers, tablefmt='orgtbl'))
 
@@ -338,9 +338,9 @@ with open(out_log_path, 'w') as out_log:
 
 
                 out_log.write(tabulate([Train_Accuracy_mpe, Train_Accuracy_marg, Train_Hamming_score_mpe, Train_Hamming_score_marg, 
-                                    Train_Exact_match_mpe, Train_Exact_match_mpe, 
+                                    Train_Exact_match_mpe, Train_Exact_match_marg, 
                                     Test_Accuracy_mpe, Test_Accuracy_marg, Test_Hamming_score_mpe, Test_Hamming_score_marg, 
-                                    Test_Exact_match_mpe, Test_Exact_match_mpe, 
+                                    Test_Exact_match_mpe, Test_Exact_match_marg, 
                                     Learning_time, Testing_time], 
                                    headers=Headers, tablefmt='orgtbl'))
 
