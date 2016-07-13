@@ -8,7 +8,7 @@ import random
 
 import sklearn.mixture
 
-from nodes import Node, OrNode, SumNode, AndNode, TreeNode, OptionNode, is_or_node, is_and_node, is_sum_node, is_tree_node, is_option_node
+from nodes import Node, OrNode, SumNode, AndNode, TreeNode, is_or_node, is_and_node, is_sum_node, is_tree_node
 from logr import logr
 from cltree import Cltree
 
@@ -669,9 +669,7 @@ class Csn:
 
             PQ = []
             if self.depth < 4 and len(PQ)>1:
-                self.node = OptionNode()
 
-                print("   - Adding an option node")
 
 #                Csn._sum_nodes = Csn._sum_nodes + 1
 
